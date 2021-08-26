@@ -1,5 +1,14 @@
 package jpnic
 
+type Result struct {
+	Err           error
+	ResultErr     []error
+	RecepNo       string
+	AdmJPNICHdl   string
+	Tech1JPNICHdl string
+	Tech2JPNICHdl string
+}
+
 type WebTransaction struct {
 	Network   Network    `json:"network"`
 	AdminUser AdminUser  `json:"admin_user"`
