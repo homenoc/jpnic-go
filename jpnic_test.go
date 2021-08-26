@@ -1,7 +1,6 @@
 package jpnic
 
 import (
-	"log"
 	"testing"
 )
 
@@ -98,6 +97,6 @@ func TestSend(t *testing.T) {
 
 	err := con.Send(input)
 	if err.Err != nil {
-		log.Println(err)
+		t.Log(err)
 	}
 }
