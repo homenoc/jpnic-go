@@ -7,6 +7,7 @@ type Result struct {
 	AdmJPNICHdl   string
 	Tech1JPNICHdl string
 	Tech2JPNICHdl string
+	Response      string
 }
 
 type WebTransaction struct {
