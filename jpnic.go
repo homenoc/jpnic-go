@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 	"io/ioutil"
@@ -105,31 +106,38 @@ func (c *Config) Send(input WebTransaction) Result {
 		if strings.Contains(scanner.Text(), "TECH2_JPNIC_HDL=") {
 			result.Tech2JPNICHdl = scanner.Text()[16:]
 		}
+		fmt.Println(scanner.Text())
+
 	}
 
 	// RET
 	if ret != "00" {
 		code, _ := strconv.Atoi(ret)
-		ErrorStatusText(code)
+		result.Err = fmt.Errorf("%s: %s", ret, ErrorStatusText(code))
 	}
 
 	// RET_CODE
-	for _, code := range retCode {
-		var errStr string
+	var errStr []error
+	for _, codeStr := range retCode {
+		var tmpStr string
 
 		// interface
-		if code[4:7] == "000" {
-			code, _ := strconv.Atoi(code[4:7])
-			errStr += ErrorStatusText(code)
+		if codeStr[4:7] != "000" {
+			code, _ := strconv.Atoi(codeStr[4:7])
+			tmpStr = codeStr[4:7] + ": " + ErrorStatusText(code)
 
 		}
 
 		// error genre
-		if code[7:] != "0" {
-			code, _ := strconv.Atoi(code[7:])
-			errStr += "_" + ErrorStatusText(code)
+		if codeStr[7:] != "0" {
+			code, _ := strconv.Atoi(codeStr[7:])
+			tmpStr += "_" + ErrorStatusText(code)
 		}
+
+		errStr = append(errStr, fmt.Errorf("%s", tmpStr))
 	}
+
+	result.ResultErr = errStr
 
 	return result
 }
