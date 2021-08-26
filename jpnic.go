@@ -106,7 +106,6 @@ func (c *Config) Send(input WebTransaction) Result {
 		if strings.Contains(scanner.Text(), "TECH2_JPNIC_HDL=") {
 			result.Tech2JPNICHdl = scanner.Text()[16:]
 		}
-		fmt.Println(scanner.Text())
 
 	}
 
