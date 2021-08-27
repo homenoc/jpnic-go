@@ -114,6 +114,31 @@ type InfoIPv4 struct {
 	KindID      string `json:"kind_id"`
 }
 
+type InfoDetailIPv4 struct {
+	IPAddress            string `json:"ip_address"`
+	Ryakusho             string `json:"ryakusho"`
+	Type                 string `json:"type"`
+	InfraUserKind        string `json:"infra_user_kind"`
+	NetworkName          string `json:"network_name"`
+	Org                  string `json:"org"`
+	OrgEn                string `json:"org_en"`
+	PostCode             string `json:"post_code"`
+	Address              string `json:"address"`
+	AddressEn            string `json:"address_en"`
+	AdminJPNICHandle     string `json:"admin_jpnic_handle"`
+	AdminJPNICHandleLink string `json:"admin_jpnic_handle_link"`
+	TechJPNICHandle      string `json:"tech_jpnic_handle"`
+	TechJPNICHandleLink  string `json:"tech_jpnic_handle_link"`
+	NameServer           string `json:"name_server"`
+	DSRecord             string `json:"ds_record"`
+	NotifyAddress        string `json:"notify_address"`
+	DeliNo               string `json:"deli_no"`
+	RecepNo              string `json:"recep_no"`
+	AssignDate           string `json:"assign_date"`
+	ReturnDate           string `json:"return_date"`
+	UpdateDate           string `json:"update_date"`
+}
+
 type InfoIPv6 struct {
 	IPAddress   string `json:"ip_address"`
 	DetailLink  string `json:"detail_link"`
@@ -125,4 +150,21 @@ type InfoIPv6 struct {
 	RecepNo     string `json:"recep_no"`
 	DeliNo      string `json:"deli_no"`
 	KindID      string `json:"kind_id"`
+}
+
+type InfoDetailIPv6 struct {
+	IPAddress            string `json:"ip_address"`
+	Ryakusho             string `json:"ryakusho"`
+	Type                 string `json:"type"`
+	InfraUserKind        string `json:"infra_user_kind"`
+	NetworkName          string `json:"network_name"`
+	Org                  string `json:"org"`
+	OrgEn                string `json:"org_en"`
+	AdminJPNICHandle     string `json:"admin_jpnic_handle"`
+	AdminJPNICHandleLink string `json:"admin_jpnic_handle_link"`
+	TechJPNICHandle      string `json:"tech_jpnic_handle"`
+	TechJPNICHandleLink  string `json:"tech_jpnic_handle_link"`
+	AssignDate           string `json:"assign_date"`
+	ReturnDate           string `json:"return_date"`
+	UpdateDate           string `json:"update_date"`
 }

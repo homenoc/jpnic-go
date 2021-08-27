@@ -1,7 +1,6 @@
 package jpnic
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
@@ -16,6 +15,19 @@ import (
 	"strings"
 	"testing"
 )
+
+// HomeNOC
+//var certFilePath = "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem"
+//var keyFilePath = "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem"
+//var caFilePath = "/home/yonedayuto/Documents/HomeNOC/cert/rootcacert_r3.cer"
+
+// doornoc
+var certFilePath = "/home/yonedayuto/Documents/doornoc/cert/v4-cert.pem"
+var keyFilePath = "/home/yonedayuto/Documents/doornoc/cert/v4-prvkey.pem"
+var caFilePath = "/home/yonedayuto/Documents/doornoc/cert/rootcacert_r3.cer"
+
+// Search String
+var searchStr = "doornoc"
 
 //func TestResultProcess(t *testing.T) {
 //	var result Result
@@ -102,9 +114,9 @@ import (
 //func TestSend(t *testing.T) {
 //	con := Config{
 //		URL:          "https://iphostmaster.nic.ad.jp/webtrans/WebRegisterCtl",
-//		CertFilePath: "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem",
-//		KeyFilePath:  "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem",
-//		CAFilePath:   "/home/yonedayuto/Documents/HomeNOC/cert/rootcacert_r3.cer",
+//		CertFilePath: certFilePath,
+//		KeyFilePath:  keyFilePath,
+//		CAFilePath:   caFilePath,
 //	}
 //	input := WebTransaction{}
 //
@@ -122,9 +134,9 @@ func TestGetIPv4(t *testing.T) {
 
 	con := Config{
 		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
-		CertFilePath: "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem",
-		KeyFilePath:  "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem",
-		CAFilePath:   "/home/yonedayuto/Documents/HomeNOC/cert/rootcacert_r3.cer",
+		CertFilePath: certFilePath,
+		KeyFilePath:  keyFilePath,
+		CAFilePath:   caFilePath,
 	}
 
 	cert, err := tls.LoadX509KeyPair(con.CertFilePath, con.KeyFilePath)
@@ -170,21 +182,6 @@ func TestGetIPv4(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	t.Log(resp.Header)
-	t.Log("SESSION_ID:" + resp.Header.Get("Set-Cookie")[11:43])
-
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		ioStr := strings.NewReader(scanner.Text())
-		reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
-		strByte, err := ioutil.ReadAll(reader)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		t.Logf("%s", string(strByte))
-	}
-
 	sessionID = resp.Header.Get("Set-Cookie")[11:43]
 
 	cookies = []*http.Cookie{
@@ -196,40 +193,15 @@ func TestGetIPv4(t *testing.T) {
 
 	jar.SetCookies(urlObj, cookies)
 
-	//resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/membermenu.do")
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//defer resp.Body.Close()
-	//
-	//t.Log(resp.Header)
-	////t.Log("SESSION_ID:" + resp.Header.Get("Set-Cookie")[11:43])
-	//
-	//scanner = bufio.NewScanner(resp.Body)
-	//for scanner.Scan() {
-	//	ioStr := strings.NewReader(scanner.Text())
-	//	reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
-	//	strByte, err := ioutil.ReadAll(reader)
-	//	if err != nil {
-	//		t.Fatal(err)
-	//	}
-	//
-	//	t.Logf("%s", string(strByte))
-	//}
-
 	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/portalv4list.do")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
-	t.Log(resp.Header)
-
-	scanner = bufio.NewScanner(resp.Body)
-
 	contentType := "application/x-www-form-urlencoded"
 
-	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=HOMENOC&recepNo=&deliNo="
+	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
 	// utf-8 => shift-jis
 	iostr := strings.NewReader(str)
 	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
@@ -244,8 +216,6 @@ func TestGetIPv4(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	t.Log(resp.Header)
-
 	bodyStr, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -259,12 +229,11 @@ func TestGetIPv4(t *testing.T) {
 	count := 0
 	var infos []InfoIPv4
 
-	doc.Find("table").Each(func(index int, tablehtml *goquery.Selection) {
-		tablehtml.Find("tr").Each(func(indextr int, rowhtml *goquery.Selection) {
+	doc.Find("table").Each(func(_ int, tableHtml *goquery.Selection) {
+		tableHtml.Find("tr").Each(func(_ int, rowHtml *goquery.Selection) {
 			var info InfoIPv4
-			rowhtml.Find("td").Each(func(indexth int, tablecell *goquery.Selection) {
-				//row = append(row, tablecell.Text())
-				ioStr := strings.NewReader(tablecell.Text())
+			rowHtml.Find("td").Each(func(index int, tableCell *goquery.Selection) {
+				ioStr := strings.NewReader(tableCell.Text())
 				reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
 				strByte, err := ioutil.ReadAll(reader)
 				if err != nil {
@@ -272,10 +241,10 @@ func TestGetIPv4(t *testing.T) {
 				}
 				dataStr := strings.TrimSpace(string(strByte))
 
-				switch indexth {
+				switch index {
 				case 0:
 					info.IPAddress = dataStr
-					info.DetailLink, _ = tablecell.Find("a").Attr("href")
+					info.DetailLink, _ = tableCell.Find("a").Attr("href")
 				case 1:
 					info.Size = dataStr
 				case 2:
@@ -321,9 +290,9 @@ func TestGetIPv6(t *testing.T) {
 
 	con := Config{
 		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
-		CertFilePath: "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem",
-		KeyFilePath:  "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem",
-		CAFilePath:   "/home/yonedayuto/Documents/HomeNOC/cert/rootcacert_r3.cer",
+		CertFilePath: certFilePath,
+		KeyFilePath:  keyFilePath,
+		CAFilePath:   caFilePath,
 	}
 
 	cert, err := tls.LoadX509KeyPair(con.CertFilePath, con.KeyFilePath)
@@ -369,9 +338,6 @@ func TestGetIPv6(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	t.Log(resp.Header)
-	t.Log("SESSION_ID:" + resp.Header.Get("Set-Cookie")[11:43])
-
 	sessionID = resp.Header.Get("Set-Cookie")[11:43]
 
 	cookies = []*http.Cookie{
@@ -385,7 +351,7 @@ func TestGetIPv6(t *testing.T) {
 
 	contentType := "application/x-www-form-urlencoded"
 
-	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=HOMENOC&recepNo=&deliNo="
+	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
 	// utf-8 => shift-jis
 	iostr := strings.NewReader(str)
 	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
@@ -400,8 +366,6 @@ func TestGetIPv6(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	t.Log(resp.Header)
-
 	bodyStr, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -415,12 +379,11 @@ func TestGetIPv6(t *testing.T) {
 	count := 0
 	var infos []InfoIPv6
 
-	doc.Find("table").Each(func(index int, tablehtml *goquery.Selection) {
-		tablehtml.Find("tr").Each(func(indextr int, rowhtml *goquery.Selection) {
+	doc.Find("table").Each(func(_ int, tableHtml *goquery.Selection) {
+		tableHtml.Find("tr").Each(func(_ int, rowHtml *goquery.Selection) {
 			var info InfoIPv6
-			rowhtml.Find("td").Each(func(indexth int, tablecell *goquery.Selection) {
-				//row = append(row, tablecell.Text())
-				ioStr := strings.NewReader(tablecell.Text())
+			rowHtml.Find("td").Each(func(index int, tableCell *goquery.Selection) {
+				ioStr := strings.NewReader(tableCell.Text())
 				reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
 				strByte, err := ioutil.ReadAll(reader)
 				if err != nil {
@@ -428,10 +391,10 @@ func TestGetIPv6(t *testing.T) {
 				}
 				dataStr := strings.TrimSpace(string(strByte))
 
-				switch indexth {
+				switch index {
 				case 0:
 					info.IPAddress = dataStr
-					info.DetailLink, _ = tablecell.Find("a").Attr("href")
+					info.DetailLink, _ = tableCell.Find("a").Attr("href")
 				case 1:
 					info.NetworkName = dataStr
 				case 2:
@@ -463,4 +426,334 @@ func TestGetIPv6(t *testing.T) {
 	for _, tmp := range infos {
 		t.Log(tmp)
 	}
+}
+
+func TestGetIPv4User(t *testing.T) {
+	sessionID, err := randomStr()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	con := Config{
+		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		CertFilePath: certFilePath,
+		KeyFilePath:  keyFilePath,
+		CAFilePath:   caFilePath,
+	}
+
+	cert, err := tls.LoadX509KeyPair(con.CertFilePath, con.KeyFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Load CA
+	caCert, err := ioutil.ReadFile(con.CAFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+	}
+	tlsConfig.BuildNameToCertificate()
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+
+	cookies := []*http.Cookie{
+		{
+			Name:  "JSESSIONID",
+			Value: sessionID,
+		},
+	}
+
+	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jar.SetCookies(urlObj, cookies)
+
+	client := &http.Client{Transport: transport, Jar: jar}
+
+	resp, err := client.Get(con.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	sessionID = resp.Header.Get("Set-Cookie")[11:43]
+
+	cookies = []*http.Cookie{
+		{
+			Name:  "JSESSIONID",
+			Value: sessionID,
+		},
+	}
+
+	jar.SetCookies(urlObj, cookies)
+
+	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/entryinfo_v4.do?netwrk_id=2020021426910")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	bodyStr, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyStr)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count := 0
+	var info InfoDetailIPv4
+
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						rowHtml2.Find("td").Each(func(_ int, tableCell2 *goquery.Selection) {
+							tableCell2.Find("table").Each(func(_ int, tableHtml3 *goquery.Selection) {
+								tableHtml3.Find("tr").Each(func(_ int, rowHtml3 *goquery.Selection) {
+									rowHtml3.Find("td").Each(func(_ int, tableCell3 *goquery.Selection) {
+										tableCell3.Find("table").Each(func(_ int, tableHtml4 *goquery.Selection) {
+											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
+												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
+													ioStr := strings.NewReader(tableCell4.Text())
+													reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
+													strByte, err := ioutil.ReadAll(reader)
+													if err != nil {
+														t.Fatal(err)
+													}
+													dataStr := strings.TrimSpace(string(strByte))
+
+													if index == 1 {
+														switch count {
+														case 0:
+															info.IPAddress = dataStr
+														case 1:
+															info.Ryakusho = dataStr
+														case 2:
+															info.Type = dataStr
+														case 3:
+															info.InfraUserKind = dataStr
+														case 4:
+															info.NetworkName = dataStr
+														case 5:
+															info.Org = dataStr
+														case 6:
+															info.OrgEn = dataStr
+														case 7:
+															info.PostCode = dataStr
+														case 8:
+															info.Address = dataStr
+														case 9:
+															info.AddressEn = dataStr
+														case 10:
+															info.AdminJPNICHandle = dataStr
+															info.AdminJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
+														case 11:
+															info.TechJPNICHandle = dataStr
+															info.TechJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
+														case 12:
+															info.NameServer = dataStr
+														case 13:
+															info.DSRecord = dataStr
+														case 14:
+															info.NotifyAddress = dataStr
+														case 15:
+															info.DeliNo = dataStr
+														case 16:
+															info.RecepNo = dataStr
+														case 17:
+															info.AssignDate = dataStr
+														case 18:
+															info.ReturnDate = dataStr
+														case 19:
+															info.UpdateDate = dataStr
+														}
+														count++
+													}
+												})
+											})
+										})
+									})
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
+
+	//infos = infos[1:]
+
+	//for _, tmp := range infos {
+	t.Log(info)
+	//}
+}
+
+func TestGetIPv6User(t *testing.T) {
+	sessionID, err := randomStr()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	con := Config{
+		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		CertFilePath: certFilePath,
+		KeyFilePath:  keyFilePath,
+		CAFilePath:   caFilePath,
+	}
+
+	cert, err := tls.LoadX509KeyPair(con.CertFilePath, con.KeyFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Load CA
+	caCert, err := ioutil.ReadFile(con.CAFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+	}
+	tlsConfig.BuildNameToCertificate()
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+
+	cookies := []*http.Cookie{
+		{
+			Name:  "JSESSIONID",
+			Value: sessionID,
+		},
+	}
+
+	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jar.SetCookies(urlObj, cookies)
+
+	client := &http.Client{Transport: transport, Jar: jar}
+
+	resp, err := client.Get(con.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	sessionID = resp.Header.Get("Set-Cookie")[11:43]
+
+	cookies = []*http.Cookie{
+		{
+			Name:  "JSESSIONID",
+			Value: sessionID,
+		},
+	}
+
+	jar.SetCookies(urlObj, cookies)
+
+	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/G11320.do?netwrk_id=2020021427992")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	bodyStr, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyStr)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count := 0
+	var info InfoDetailIPv6
+
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						rowHtml2.Find("td").Each(func(_ int, tableCell2 *goquery.Selection) {
+							tableCell2.Find("table").Each(func(_ int, tableHtml3 *goquery.Selection) {
+								tableHtml3.Find("tr").Each(func(_ int, rowHtml3 *goquery.Selection) {
+									rowHtml3.Find("td").Each(func(_ int, tableCell3 *goquery.Selection) {
+										tableCell3.Find("table").Each(func(_ int, tableHtml4 *goquery.Selection) {
+											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
+												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
+													ioStr := strings.NewReader(tableCell4.Text())
+													reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
+													strByte, err := ioutil.ReadAll(reader)
+													if err != nil {
+														t.Fatal(err)
+													}
+													dataStr := strings.TrimSpace(string(strByte))
+
+													if index == 1 {
+														switch count {
+														case 0:
+															info.IPAddress = dataStr
+														case 1:
+															info.Ryakusho = dataStr
+														case 2:
+															info.Type = dataStr
+														case 3:
+															info.InfraUserKind = dataStr
+														case 4:
+															info.NetworkName = dataStr
+														case 5:
+															info.Org = dataStr
+														case 6:
+															info.OrgEn = dataStr
+														case 7:
+															info.AdminJPNICHandle = dataStr
+															info.AdminJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
+														case 8:
+															info.TechJPNICHandle = dataStr
+															info.TechJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
+														case 9:
+															info.AssignDate = dataStr
+														case 10:
+															info.ReturnDate = dataStr
+														case 11:
+															info.UpdateDate = dataStr
+														}
+														count++
+													}
+												})
+											})
+										})
+									})
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
+
+	//infos = infos[1:]
+
+	//for _, tmp := range infos {
+	t.Log(info)
+	//}
 }
