@@ -98,3 +98,31 @@ type Etc struct {
 	CertID   string `json:"cert_id"`
 	Password string `json:"password"`
 }
+
+type InfoIPv4 struct {
+	IPAddress   string `json:"ip_address"`
+	DetailLink  string `json:"detail_link"`
+	Size        string `json:"size"`
+	NetworkName string `json:"network_name"`
+	AssignDate  string `json:"assign_date"`
+	ReturnDate  string `json:"return_date"`
+	OrgName     string `json:"org_name"`
+	Ryakusho    string `json:"ryakusho"`
+	RecepNo     string `json:"recep_no"`
+	DeliNo      string `json:"deli_no"`
+	Type        string `json:"type"`
+	KindID      string `json:"kind_id"`
+}
+
+type InfoIPv6 struct {
+	IPAddress   string `json:"ip_address"`
+	DetailLink  string `json:"detail_link"`
+	NetworkName string `json:"network_name"`
+	AssignDate  string `json:"assign_date"`
+	ReturnDate  string `json:"return_date"`
+	OrgName     string `json:"org_name"`
+	Ryakusho    string `json:"ryakusho"`
+	RecepNo     string `json:"recep_no"`
+	DeliNo      string `json:"deli_no"`
+	KindID      string `json:"kind_id"`
+}
