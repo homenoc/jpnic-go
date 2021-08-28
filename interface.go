@@ -99,25 +99,7 @@ type Etc struct {
 	Password string `json:"password"`
 }
 
-type InfoDetailShort struct {
-	IPAddress            string `json:"ip_address"`
-	Ryakusho             string `json:"ryakusho"`
-	Type                 string `json:"type"`
-	InfraUserKind        string `json:"infra_user_kind"`
-	NetworkName          string `json:"network_name"`
-	Org                  string `json:"org"`
-	OrgEn                string `json:"org_en"`
-	AdminJPNICHandle     string `json:"admin_jpnic_handle"`
-	AdminJPNICHandleLink string `json:"admin_jpnic_handle_link"`
-	TechJPNICHandle      string `json:"tech_jpnic_handle"`
-	TechJPNICHandleLink  string `json:"tech_jpnic_handle_link"`
-	NameServer           string `json:"name_server"`
-	AssignDate           string `json:"assign_date"`
-	ReturnDate           string `json:"return_date"`
-	UpdateDate           string `json:"update_date"`
-}
-
-type InfoDetailLong struct {
+type InfoDetail struct {
 	IPAddress            string `json:"ip_address"`
 	Ryakusho             string `json:"ryakusho"`
 	Type                 string `json:"type"`
@@ -140,6 +122,24 @@ type InfoDetailLong struct {
 	AssignDate           string `json:"assign_date"`
 	ReturnDate           string `json:"return_date"`
 	UpdateDate           string `json:"update_date"`
+}
+
+type JPNICHandleDetail struct {
+	IsJPNICHandle bool   `json:"is_jpnic_handle"`
+	JPNICHandle   string `json:"jpnic_handle"`
+	Name          string `json:"name"`
+	NameEn        string `json:"name_en"`
+	Email         string `json:"email"`
+	Org           string `json:"org"`
+	OrgEn         string `json:"org_en"`
+	Division      string `json:"division"`
+	DivisionEn    string `json:"division_en"`
+	Title         string `json:"title"`
+	TitleEn       string `json:"title_en"`
+	Tel           string `json:"tel"`
+	Fax           string `json:"fax"`
+	NotifyAddress string `json:"notify_address"`
+	UpdateDate    string `json:"update_date"`
 }
 
 type InfoIPv4 struct {
