@@ -23,6 +23,9 @@ var searchStr = "HOMENOC"
 var v4UserURL = "/jpnic/entryinfo_v4.do?netwrk_id=2020021426910"
 var v6UserURL = "/jpnic/G11320.do?netwrk_id=2020021427992"
 
+var JPNICHandle1 = "YY38053JP"
+var JPNICHandle2 = "YY36773JP"
+
 func TestGetIPv4(t *testing.T) {
 	con := Config{
 		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
@@ -83,6 +86,34 @@ func TestGetIPv6User(t *testing.T) {
 	}
 
 	data, err := con.GetIPUser(v6UserURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(data)
+}
+
+func TestGetJPNICHandle1(t *testing.T) {
+	con := Config{
+		CertFilePath: certFilePathV6,
+		KeyFilePath:  keyFilePathV6,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.GetJPNICHandle(JPNICHandle1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(data)
+}
+
+func TestGetJPNICHandle2(t *testing.T) {
+	con := Config{
+		CertFilePath: certFilePathV6,
+		KeyFilePath:  keyFilePathV6,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.GetJPNICHandle(JPNICHandle2)
 	if err != nil {
 		t.Fatal(err)
 	}

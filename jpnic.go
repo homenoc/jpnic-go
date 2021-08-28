@@ -10,7 +10,6 @@ import (
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -512,7 +511,6 @@ func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
 												var title string
 												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
 													dataStr := strings.TrimSpace(tableCell4.Text())
-													log.Println(dataStr)
 													if index == 1 {
 														switch title {
 														case "IPネットワークアドレス":
@@ -564,6 +562,155 @@ func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
 												})
 											})
 										})
+									})
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
+
+	return info, err
+}
+
+func (c *Config) GetJPNICHandle(handle string) (JPNICHandleDetail, error) {
+	var info JPNICHandleDetail
+
+	sessionID, err := randomStr()
+	if err != nil {
+		return info, err
+	}
+
+	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
+	if err != nil {
+		return info, err
+	}
+
+	// Load CA
+	caCert, err := ioutil.ReadFile(c.CAFilePath)
+	if err != nil {
+		return info, err
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+	}
+	tlsConfig.BuildNameToCertificate()
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+
+	cookies := []*http.Cookie{
+		{
+			Name:  "JSESSIONID",
+			Value: sessionID,
+		},
+	}
+
+	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return info, err
+	}
+
+	jar.SetCookies(urlObj, cookies)
+
+	client := &http.Client{Transport: transport, Jar: jar}
+
+	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	if err != nil {
+		return info, err
+	}
+	defer resp.Body.Close()
+
+	sessionID = resp.Header.Get("Set-Cookie")[11:43]
+
+	cookies = []*http.Cookie{
+		{
+			Name:  "JSESSIONID",
+			Value: sessionID,
+		},
+	}
+
+	jar.SetCookies(urlObj, cookies)
+
+	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/entryinfo_handle.do?jpnic_hdl=" + handle)
+	if err != nil {
+		return info, err
+	}
+	defer resp.Body.Close()
+
+	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
+	bodyByte, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return info, err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	if err != nil {
+		return info, err
+	}
+
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						rowHtml2.Find("td").Each(func(_ int, tableCell2 *goquery.Selection) {
+							tableCell2.Find("table").Each(func(_ int, tableHtml3 *goquery.Selection) {
+								tableHtml3.Find("tr").Each(func(_ int, rowHtml3 *goquery.Selection) {
+									var title string
+									rowHtml3.Find("td").Each(func(index int, tableCell3 *goquery.Selection) {
+										dataStr := strings.TrimSpace(tableCell3.Text())
+										if index == 1 {
+											switch title {
+											case "グループハンドル":
+												info.IsJPNICHandle = false
+												info.JPNICHandle = dataStr
+											case "グループ名":
+												info.Org = dataStr
+											case "Group Name":
+												info.OrgEn = dataStr
+											case "JPNICハンドル":
+												info.IsJPNICHandle = true
+												info.JPNICHandle = dataStr
+											case "氏名":
+												info.Org = dataStr
+											case "Last, First":
+												info.OrgEn = dataStr
+											case "電子メール":
+												info.Email = dataStr
+											case "電子メイル": // JPNIC側の表記ゆれのため
+												info.Email = dataStr
+											case "組織名":
+												info.Org = dataStr
+											case "Organization":
+												info.OrgEn = dataStr
+											case "部署":
+												info.Division = dataStr
+											case "Division":
+												info.DivisionEn = dataStr
+											case "肩書":
+												info.Title = dataStr
+											case "Title":
+												info.TitleEn = dataStr
+											case "電話番号":
+												info.Tel = dataStr
+											case "Fax番号":
+												info.Fax = dataStr
+											case "FAX番号": // JPNIC側の表記ゆれのため
+												info.Fax = dataStr
+											case "通知アドレス":
+												info.NotifyAddress = dataStr
+											case "最終更新":
+												info.UpdateDate = dataStr
+											}
+										} else {
+											title = dataStr
+										}
 									})
 								})
 							})
