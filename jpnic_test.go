@@ -126,6 +126,21 @@ var searchStr = "doornoc"
 //	}
 //}
 
+func Test1GetIPv4(t *testing.T) {
+	con := Config{
+		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		CertFilePath: certFilePath,
+		KeyFilePath:  keyFilePath,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.GetAllIPv4(searchStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(data)
+}
+
 func TestGetIPv4(t *testing.T) {
 	sessionID, err := randomStr()
 	if err != nil {
@@ -280,6 +295,21 @@ func TestGetIPv4(t *testing.T) {
 	for _, tmp := range infos {
 		t.Log(tmp)
 	}
+}
+
+func Test1GetIPv6(t *testing.T) {
+	con := Config{
+		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		CertFilePath: certFilePath,
+		KeyFilePath:  keyFilePath,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.GetAllIPv6(searchStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(data)
 }
 
 func TestGetIPv6(t *testing.T) {
