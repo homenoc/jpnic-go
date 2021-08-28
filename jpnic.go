@@ -419,8 +419,8 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 	return infos, nil
 }
 
-func (c *Config) GetIPUser(userURL string) (InfoDetailLong, error) {
-	var info InfoDetailLong
+func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
+	var info InfoDetail
 
 	sessionID, err := randomStr()
 	if err != nil {
