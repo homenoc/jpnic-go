@@ -99,22 +99,25 @@ type Etc struct {
 	Password string `json:"password"`
 }
 
-type InfoIPv4 struct {
-	IPAddress   string `json:"ip_address"`
-	DetailLink  string `json:"detail_link"`
-	Size        string `json:"size"`
-	NetworkName string `json:"network_name"`
-	AssignDate  string `json:"assign_date"`
-	ReturnDate  string `json:"return_date"`
-	OrgName     string `json:"org_name"`
-	Ryakusho    string `json:"ryakusho"`
-	RecepNo     string `json:"recep_no"`
-	DeliNo      string `json:"deli_no"`
-	Type        string `json:"type"`
-	KindID      string `json:"kind_id"`
+type InfoDetailShort struct {
+	IPAddress            string `json:"ip_address"`
+	Ryakusho             string `json:"ryakusho"`
+	Type                 string `json:"type"`
+	InfraUserKind        string `json:"infra_user_kind"`
+	NetworkName          string `json:"network_name"`
+	Org                  string `json:"org"`
+	OrgEn                string `json:"org_en"`
+	AdminJPNICHandle     string `json:"admin_jpnic_handle"`
+	AdminJPNICHandleLink string `json:"admin_jpnic_handle_link"`
+	TechJPNICHandle      string `json:"tech_jpnic_handle"`
+	TechJPNICHandleLink  string `json:"tech_jpnic_handle_link"`
+	NameServer           string `json:"name_server"`
+	AssignDate           string `json:"assign_date"`
+	ReturnDate           string `json:"return_date"`
+	UpdateDate           string `json:"update_date"`
 }
 
-type InfoDetailIPv4 struct {
+type InfoDetailLong struct {
 	IPAddress            string `json:"ip_address"`
 	Ryakusho             string `json:"ryakusho"`
 	Type                 string `json:"type"`
@@ -139,6 +142,21 @@ type InfoDetailIPv4 struct {
 	UpdateDate           string `json:"update_date"`
 }
 
+type InfoIPv4 struct {
+	IPAddress   string `json:"ip_address"`
+	DetailLink  string `json:"detail_link"`
+	Size        string `json:"size"`
+	NetworkName string `json:"network_name"`
+	AssignDate  string `json:"assign_date"`
+	ReturnDate  string `json:"return_date"`
+	OrgName     string `json:"org_name"`
+	Ryakusho    string `json:"ryakusho"`
+	RecepNo     string `json:"recep_no"`
+	DeliNo      string `json:"deli_no"`
+	Type        string `json:"type"`
+	KindID      string `json:"kind_id"`
+}
+
 type InfoIPv6 struct {
 	IPAddress   string `json:"ip_address"`
 	DetailLink  string `json:"detail_link"`
@@ -150,21 +168,4 @@ type InfoIPv6 struct {
 	RecepNo     string `json:"recep_no"`
 	DeliNo      string `json:"deli_no"`
 	KindID      string `json:"kind_id"`
-}
-
-type InfoDetailIPv6 struct {
-	IPAddress            string `json:"ip_address"`
-	Ryakusho             string `json:"ryakusho"`
-	Type                 string `json:"type"`
-	InfraUserKind        string `json:"infra_user_kind"`
-	NetworkName          string `json:"network_name"`
-	Org                  string `json:"org"`
-	OrgEn                string `json:"org_en"`
-	AdminJPNICHandle     string `json:"admin_jpnic_handle"`
-	AdminJPNICHandleLink string `json:"admin_jpnic_handle_link"`
-	TechJPNICHandle      string `json:"tech_jpnic_handle"`
-	TechJPNICHandleLink  string `json:"tech_jpnic_handle_link"`
-	AssignDate           string `json:"assign_date"`
-	ReturnDate           string `json:"return_date"`
-	UpdateDate           string `json:"update_date"`
 }
