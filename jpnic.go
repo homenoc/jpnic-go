@@ -590,7 +590,7 @@ func (c *Config) GetIPUser(userURL string) (InfoDetailLong, error) {
 											})
 											// 自所属ではないとき、struct数が13個になる
 											// この場合は、並び替えを実施する
-											if count == 12 {
+											if count == 11 {
 												info = InfoDetailLong{}
 												info.IPAddress = infoShort.IPAddress
 												info.Ryakusho = infoShort.Ryakusho
