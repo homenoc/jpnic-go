@@ -10,7 +10,6 @@ import (
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -228,12 +227,13 @@ func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
 	}
 	defer resp.Body.Close()
 
-	bodyStr, err := ioutil.ReadAll(resp.Body)
+	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
+	bodyByte, err := ioutil.ReadAll(reader)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyStr)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
 	if err != nil {
 		return nil, err
 	}
@@ -245,13 +245,7 @@ func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
 		tableHtml.Find("tr").Each(func(_ int, rowHtml *goquery.Selection) {
 			var info InfoIPv4
 			rowHtml.Find("td").Each(func(index int, tableCell *goquery.Selection) {
-				ioStr := strings.NewReader(tableCell.Text())
-				reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
-				strByte, err = ioutil.ReadAll(reader)
-				if err != nil {
-					//return nil, err
-				}
-				dataStr := strings.TrimSpace(string(strByte))
+				dataStr := strings.TrimSpace(tableCell.Text())
 
 				switch index {
 				case 0:
@@ -369,12 +363,13 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 	}
 	defer resp.Body.Close()
 
-	bodyStr, err := ioutil.ReadAll(resp.Body)
+	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
+	bodyByte, err := ioutil.ReadAll(reader)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyStr)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
 	if err != nil {
 		return nil, err
 	}
@@ -386,13 +381,7 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 		tableHtml.Find("tr").Each(func(_ int, rowHtml *goquery.Selection) {
 			var info InfoIPv6
 			rowHtml.Find("td").Each(func(index int, tableCell *goquery.Selection) {
-				ioStr := strings.NewReader(tableCell.Text())
-				reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
-				strByte, err = ioutil.ReadAll(reader)
-				if err != nil {
-					//return nil, err
-				}
-				dataStr := strings.TrimSpace(string(strByte))
+				dataStr := strings.TrimSpace(tableCell.Text())
 
 				switch index {
 				case 0:
@@ -497,12 +486,13 @@ func (c *Config) GetIPv4User(userURL string) (InfoDetailIPv4, error) {
 	}
 	defer resp.Body.Close()
 
-	bodyStr, err := ioutil.ReadAll(resp.Body)
+	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
+	bodyByte, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return info, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyStr)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
 	if err != nil {
 		return info, err
 	}
@@ -521,13 +511,7 @@ func (c *Config) GetIPv4User(userURL string) (InfoDetailIPv4, error) {
 										tableCell3.Find("table").Each(func(_ int, tableHtml4 *goquery.Selection) {
 											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
 												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
-													ioStr := strings.NewReader(tableCell4.Text())
-													reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
-													strByte, err := ioutil.ReadAll(reader)
-													if err != nil {
-														//return info, err
-													}
-													dataStr := strings.TrimSpace(string(strByte))
+													dataStr := strings.TrimSpace(string(tableCell4.Text()))
 
 													if index == 1 {
 														switch count {
@@ -660,12 +644,13 @@ func (c *Config) GetIPv6User(userURL string) (InfoDetailIPv6, error) {
 	}
 	defer resp.Body.Close()
 
-	bodyStr, err := ioutil.ReadAll(resp.Body)
+	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
+	bodyByte, err := ioutil.ReadAll(reader)
 	if err != nil {
-		log.Fatal(err)
+		return info, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyStr)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
 	if err != nil {
 		return info, err
 	}
@@ -684,13 +669,7 @@ func (c *Config) GetIPv6User(userURL string) (InfoDetailIPv6, error) {
 										tableCell3.Find("table").Each(func(_ int, tableHtml4 *goquery.Selection) {
 											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
 												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
-													ioStr := strings.NewReader(tableCell4.Text())
-													reader := transform.NewReader(ioStr, japanese.ShiftJIS.NewDecoder())
-													strByte, err := ioutil.ReadAll(reader)
-													if err != nil {
-														//return info, err
-													}
-													dataStr := strings.TrimSpace(string(strByte))
+													dataStr := strings.TrimSpace(tableCell4.Text())
 
 													if index == 1 {
 														switch count {
