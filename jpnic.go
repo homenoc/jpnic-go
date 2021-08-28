@@ -10,6 +10,7 @@ import (
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -420,7 +421,6 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 
 func (c *Config) GetIPUser(userURL string) (InfoDetailLong, error) {
 	var info InfoDetailLong
-	var infoShort InfoDetailShort
 
 	sessionID, err := randomStr()
 	if err != nil {
@@ -498,8 +498,6 @@ func (c *Config) GetIPUser(userURL string) (InfoDetailLong, error) {
 		return info, err
 	}
 
-	count := 0
-
 	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
 		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
 			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
@@ -511,103 +509,60 @@ func (c *Config) GetIPUser(userURL string) (InfoDetailLong, error) {
 									rowHtml3.Find("td").Each(func(_ int, tableCell3 *goquery.Selection) {
 										tableCell3.Find("table").Each(func(_ int, tableHtml4 *goquery.Selection) {
 											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
+												var title string
 												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
 													dataStr := strings.TrimSpace(tableCell4.Text())
+													log.Println(dataStr)
 													if index == 1 {
-														switch count {
-														case 0:
+														switch title {
+														case "IPネットワークアドレス":
 															info.IPAddress = dataStr
-															//short
-															infoShort.IPAddress = dataStr
-														case 1:
+														case "資源管理者略称":
 															info.Ryakusho = dataStr
-															//short
-															infoShort.Ryakusho = dataStr
-														case 2:
+														case "アドレス種別":
 															info.Type = dataStr
-															//short
-															infoShort.Type = dataStr
-														case 3:
+														case "インフラ・ユーザ区分":
 															info.InfraUserKind = dataStr
-															//short
-															infoShort.InfraUserKind = dataStr
-														case 4:
+														case "ネットワーク名":
 															info.NetworkName = dataStr
-															//short
-															infoShort.NetworkName = dataStr
-														case 5:
+														case "組織名":
 															info.Org = dataStr
-															//short
-															infoShort.Org = dataStr
-														case 6:
+														case "Organization":
 															info.OrgEn = dataStr
-															//short
-															infoShort.OrgEn = dataStr
-														case 7:
+														case "郵便番号":
 															info.PostCode = dataStr
-															//short
-															infoShort.AdminJPNICHandle = dataStr
-															infoShort.AdminJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-														case 8:
+														case "住所":
 															info.Address = dataStr
-															//short
-															infoShort.TechJPNICHandle = dataStr
-															infoShort.TechJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-														case 9:
+														case "Address":
 															info.AddressEn = dataStr
-															//short
-															infoShort.AssignDate = dataStr
-														case 10:
+														case "管理者連絡窓口":
 															info.AdminJPNICHandle = dataStr
 															info.AdminJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-															//short
-															infoShort.ReturnDate = dataStr
-														case 11:
+														case "技術連絡担当者":
 															info.TechJPNICHandle = dataStr
 															info.TechJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-															//short
-															infoShort.UpdateDate = dataStr
-														case 12:
+														case "ネームサーバ":
 															info.NameServer = dataStr
-														case 13:
+														case "DSレコード":
 															info.DSRecord = dataStr
-														case 14:
+														case "通知アドレス":
 															info.NotifyAddress = dataStr
-														case 15:
+														case "審議番号":
 															info.DeliNo = dataStr
-														case 16:
+														case "受付番号":
 															info.RecepNo = dataStr
-														case 17:
+														case "割当年月日":
 															info.AssignDate = dataStr
-														case 18:
+														case "返却年月日":
 															info.ReturnDate = dataStr
-														case 19:
+														case "最終更新":
 															info.UpdateDate = dataStr
 														}
-														count++
+													} else {
+														title = dataStr
 													}
 												})
 											})
-											// 自所属ではないとき、struct数が13個になる
-											// この場合は、並び替えを実施する
-											if count == 12 {
-												info = InfoDetailLong{}
-												info.IPAddress = infoShort.IPAddress
-												info.Ryakusho = infoShort.Ryakusho
-												info.Type = infoShort.Type
-												info.InfraUserKind = infoShort.InfraUserKind
-												info.NetworkName = infoShort.NetworkName
-												info.Org = infoShort.Org
-												info.OrgEn = infoShort.OrgEn
-												info.AdminJPNICHandle = infoShort.AdminJPNICHandle
-												info.AdminJPNICHandleLink = infoShort.AdminJPNICHandleLink
-												info.TechJPNICHandle = infoShort.TechJPNICHandle
-												info.TechJPNICHandleLink = infoShort.TechJPNICHandleLink
-												info.NameServer = infoShort.NameServer
-												info.AssignDate = infoShort.AssignDate
-												info.ReturnDate = infoShort.ReturnDate
-												info.UpdateDate = infoShort.UpdateDate
-											}
 										})
 									})
 								})

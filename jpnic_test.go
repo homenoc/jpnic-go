@@ -7,18 +7,16 @@ import (
 var caFilePath = "/home/yonedayuto/Documents/HomeNOC/cert/rootcacert_r3.cer"
 
 // HomeNOC
-//var certFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem"
-//var keyFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem"
-//var certFilePathV6 = "/home/yonedayuto/Documents/HomeNOC/cert/v6-cert.pem"
-//var keyFilePathV6 = "/home/yonedayuto/Documents/HomeNOC/cert/v6-prvkey.pem"
+var certFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem"
+var keyFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem"
+var certFilePathV6 = "/home/yonedayuto/Documents/HomeNOC/cert/v6-cert.pem"
+var keyFilePathV6 = "/home/yonedayuto/Documents/HomeNOC/cert/v6-prvkey.pem"
 
 // doornoc
-var certFilePathV4 = "/home/yonedayuto/Documents/doornoc/cert/v4-cert.pem"
-var keyFilePathV4 = "/home/yonedayuto/Documents/doornoc/cert/v4-prvkey.pem"
-var certFilePathV6 = "/home/yonedayuto/Documents/doornoc/cert/v6-cert.pem"
-var keyFilePathV6 = "/home/yonedayuto/Documents/doornoc/cert/v6-prvkey.pem"
-
-//var caFilePath = "/home/yonedayuto/Documents/doornoc/cert/rootcacert_r3.cer"
+//var certFilePathV4 = "/home/yonedayuto/Documents/doornoc/cert/v4-cert.pem"
+//var keyFilePathV4 = "/home/yonedayuto/Documents/doornoc/cert/v4-prvkey.pem"
+//var certFilePathV6 = "/home/yonedayuto/Documents/doornoc/cert/v6-cert.pem"
+//var keyFilePathV6 = "/home/yonedayuto/Documents/doornoc/cert/v6-prvkey.pem"
 
 // Search String (HOMENOC/DOORNOC)
 var searchStr = "HOMENOC"
@@ -83,8 +81,6 @@ func TestGetIPv6User(t *testing.T) {
 		KeyFilePath:  keyFilePathV6,
 		CAFilePath:   caFilePath,
 	}
-
-	t.Log(con)
 
 	data, err := con.GetIPUser(v6UserURL)
 	if err != nil {
