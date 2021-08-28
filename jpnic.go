@@ -418,166 +418,9 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 	return infos, nil
 }
 
-func (c *Config) GetIPv4User(userURL string) (InfoDetailIPv4, error) {
-	var info InfoDetailIPv4
-
-	sessionID, err := randomStr()
-	if err != nil {
-		return info, err
-	}
-
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return info, err
-	}
-
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return info, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return info, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
-	if err != nil {
-		return info, err
-	}
-	defer resp.Body.Close()
-
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp" + userURL)
-	if err != nil {
-		return info, err
-	}
-	defer resp.Body.Close()
-
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return info, err
-	}
-
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
-	if err != nil {
-		return info, err
-	}
-
-	count := 0
-
-	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
-		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
-			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
-				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
-					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
-						rowHtml2.Find("td").Each(func(_ int, tableCell2 *goquery.Selection) {
-							tableCell2.Find("table").Each(func(_ int, tableHtml3 *goquery.Selection) {
-								tableHtml3.Find("tr").Each(func(_ int, rowHtml3 *goquery.Selection) {
-									rowHtml3.Find("td").Each(func(_ int, tableCell3 *goquery.Selection) {
-										tableCell3.Find("table").Each(func(_ int, tableHtml4 *goquery.Selection) {
-											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
-												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
-													dataStr := strings.TrimSpace(string(tableCell4.Text()))
-
-													if index == 1 {
-														switch count {
-														case 0:
-															info.IPAddress = dataStr
-														case 1:
-															info.Ryakusho = dataStr
-														case 2:
-															info.Type = dataStr
-														case 3:
-															info.InfraUserKind = dataStr
-														case 4:
-															info.NetworkName = dataStr
-														case 5:
-															info.Org = dataStr
-														case 6:
-															info.OrgEn = dataStr
-														case 7:
-															info.PostCode = dataStr
-														case 8:
-															info.Address = dataStr
-														case 9:
-															info.AddressEn = dataStr
-														case 10:
-															info.AdminJPNICHandle = dataStr
-															info.AdminJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-														case 11:
-															info.TechJPNICHandle = dataStr
-															info.TechJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-														case 12:
-															info.NameServer = dataStr
-														case 13:
-															info.DSRecord = dataStr
-														case 14:
-															info.NotifyAddress = dataStr
-														case 15:
-															info.DeliNo = dataStr
-														case 16:
-															info.RecepNo = dataStr
-														case 17:
-															info.AssignDate = dataStr
-														case 18:
-															info.ReturnDate = dataStr
-														case 19:
-															info.UpdateDate = dataStr
-														}
-														count++
-													}
-												})
-											})
-										})
-									})
-								})
-							})
-						})
-					})
-				})
-			})
-		})
-	})
-
-	return info, err
-}
-
-func (c *Config) GetIPv6User(userURL string) (InfoDetailIPv6, error) {
-	var info InfoDetailIPv6
+func (c *Config) GetIPUser(userURL string) (InfoDetailLong, error) {
+	var info InfoDetailLong
+	var infoShort InfoDetailShort
 
 	sessionID, err := randomStr()
 	if err != nil {
@@ -670,40 +513,101 @@ func (c *Config) GetIPv6User(userURL string) (InfoDetailIPv6, error) {
 											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
 												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
 													dataStr := strings.TrimSpace(tableCell4.Text())
-
 													if index == 1 {
 														switch count {
 														case 0:
 															info.IPAddress = dataStr
+															//short
+															infoShort.IPAddress = dataStr
 														case 1:
 															info.Ryakusho = dataStr
+															//short
+															infoShort.Ryakusho = dataStr
 														case 2:
 															info.Type = dataStr
+															//short
+															infoShort.Type = dataStr
 														case 3:
 															info.InfraUserKind = dataStr
+															//short
+															infoShort.InfraUserKind = dataStr
 														case 4:
 															info.NetworkName = dataStr
+															//short
+															infoShort.NetworkName = dataStr
 														case 5:
 															info.Org = dataStr
+															//short
+															infoShort.Org = dataStr
 														case 6:
 															info.OrgEn = dataStr
+															//short
+															infoShort.OrgEn = dataStr
 														case 7:
+															info.PostCode = dataStr
+															//short
+															infoShort.AdminJPNICHandle = dataStr
+															infoShort.AdminJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
+														case 8:
+															info.Address = dataStr
+															//short
+															infoShort.TechJPNICHandle = dataStr
+															infoShort.TechJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
+														case 9:
+															info.AddressEn = dataStr
+															//short
+															infoShort.AssignDate = dataStr
+														case 10:
 															info.AdminJPNICHandle = dataStr
 															info.AdminJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-														case 8:
+															//short
+															infoShort.ReturnDate = dataStr
+														case 11:
 															info.TechJPNICHandle = dataStr
 															info.TechJPNICHandleLink, _ = tableCell4.Find("a").Attr("href")
-														case 9:
+															//short
+															infoShort.UpdateDate = dataStr
+														case 12:
+															info.NameServer = dataStr
+														case 13:
+															info.DSRecord = dataStr
+														case 14:
+															info.NotifyAddress = dataStr
+														case 15:
+															info.DeliNo = dataStr
+														case 16:
+															info.RecepNo = dataStr
+														case 17:
 															info.AssignDate = dataStr
-														case 10:
+														case 18:
 															info.ReturnDate = dataStr
-														case 11:
+														case 19:
 															info.UpdateDate = dataStr
 														}
 														count++
 													}
 												})
 											})
+											// 自所属ではないとき、struct数が13個になる
+											// この場合は、並び替えを実施する
+											if count == 12 {
+												info = InfoDetailLong{}
+												info.IPAddress = infoShort.IPAddress
+												info.Ryakusho = infoShort.Ryakusho
+												info.Type = infoShort.Type
+												info.InfraUserKind = infoShort.InfraUserKind
+												info.NetworkName = infoShort.NetworkName
+												info.Org = infoShort.Org
+												info.OrgEn = infoShort.OrgEn
+												info.AdminJPNICHandle = infoShort.AdminJPNICHandle
+												info.AdminJPNICHandleLink = infoShort.AdminJPNICHandleLink
+												info.TechJPNICHandle = infoShort.TechJPNICHandle
+												info.TechJPNICHandleLink = infoShort.TechJPNICHandleLink
+												info.NameServer = infoShort.NameServer
+												info.AssignDate = infoShort.AssignDate
+												info.ReturnDate = infoShort.ReturnDate
+												info.UpdateDate = infoShort.UpdateDate
+											}
 										})
 									})
 								})
