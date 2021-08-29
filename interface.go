@@ -169,3 +169,11 @@ type InfoIPv6 struct {
 	DeliNo      string `json:"deli_no"`
 	KindID      string `json:"kind_id"`
 }
+
+type ReturnIPv6List struct {
+	NetworkID     string `json:"network_id"`
+	IPAddress     string `json:"ip_address"`
+	NetworkName   string `json:"network_name"`
+	InfraUserKind string `json:"infra_user_kind"`
+	AssignDate    string `json:"assign_date"`
+}
