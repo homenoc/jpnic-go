@@ -9,13 +9,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
-	"net/url"
 	"strconv"
 	"strings"
 )
 
-var userAgent string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0"
+var userAgent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0"
+var contentType = "application/x-www-form-urlencoded"
 
 type Config struct {
 	URL          string
@@ -52,7 +51,7 @@ func (c *Config) Send(input WebTransaction) Result {
 
 	//req.Header.Set("User-Agent", "Golang_Spider_Bot/3.0")
 
-	contentType := "text/html"
+	contentType = "text/html"
 
 	str, err := Marshal(input)
 	if err != nil {
@@ -145,85 +144,45 @@ func (c *Config) Send(input WebTransaction) Result {
 }
 
 func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return nil, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return nil, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/portalv4list.do")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	contentType := "application/x-www-form-urlencoded"
-
-	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
+	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" +
+		searchStr + "&recepNo=&deliNo=" + "&action=%81%40%8C%9F%8D%F5%81%40"
 	// utf-8 => shift-jis
-	_, strByte, err := toShiftJIS(str)
+	reqBody, _, err := toShiftJIS(str)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp/jpnic/portalv4listmain.do", contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/portalv4listmain.do",
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	_, bodyByte, err := readShiftJIS(resp.Body)
 	if err != nil {
@@ -284,75 +243,41 @@ func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
 }
 
 func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return nil, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return nil, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	contentType := "application/x-www-form-urlencoded"
-
 	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
 	// utf-8 => shift-jis
-	_, strByte, err := toShiftJIS(str)
+	reqBody, _, err := toShiftJIS(str)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp/jpnic/K11310Action.do", contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/K11310Action.do",
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return nil, err
 	}
@@ -415,66 +340,34 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
 	var info InfoDetail
 
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return info, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return info, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return info, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return info, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return info, err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + userURL,
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp" + userURL)
+	resp, err = r.get()
 	if err != nil {
 		return info, err
 	}
@@ -571,66 +464,34 @@ func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
 func (c *Config) GetJPNICHandle(handle string) (JPNICHandleDetail, error) {
 	var info JPNICHandleDetail
 
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return info, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return info, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return info, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return info, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return info, err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/entryinfo_handle.do?jpnic_hdl=" + handle,
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/entryinfo_handle.do?jpnic_hdl=" + handle)
+	resp, err = r.get()
 	if err != nil {
 		return info, err
 	}
@@ -728,66 +589,34 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 		return "", fmt.Errorf("ネットワーク名が指定されていません。。")
 	}
 
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return "", err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return "", err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return "", err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return "", err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/assireturnv4regist.do?aplyid=108",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/assireturnv4regist.do?aplyid=108")
+	resp, err = r.get()
 	if err != nil {
 		return "", err
 	}
@@ -832,21 +661,28 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 		return "", fmt.Errorf("action URLの取得失敗")
 	}
 
-	contentType := "application/x-www-form-urlencoded"
-
 	str := "org.apache.struts.taglib.html.TOKEN=" + token + "&destdisp=" + destDisp + "&aplyid=" + aplyId + "&ipaddr=" + v4 +
 		"&netwrk_nm=" + networkName + "&rtn_date=" + returnDate +
 		"&aply_from_addr=" + notifyEMail + "&aply_from_addr_confirm=" + notifyEMail + "&action=%90%5C%90%BF"
 	// utf-8 => shift-jis
-	_, strByte, err := toShiftJIS(str)
+	reqBody, _, err := toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp"+actionURL, contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	// utf-8 => shift-jis
 	body, _, err = readShiftJIS(resp.Body)
@@ -904,15 +740,24 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 	str = "org.apache.struts.taglib.html.TOKEN=" + token + "&prevDispId=" + prevDispId + "&aplyid=" + aplyId +
 		"&destdisp=" + destDisp + "&inputconf=%8Am%94F"
 	// utf-8 => shift-jis
-	_, strByte, err = toShiftJIS(str)
+	reqBody, _, err = toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp"+actionURL, contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	// utf-8 => shift-jis
 	body, _, err = readShiftJIS(resp.Body)
@@ -964,66 +809,34 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 		return "", fmt.Errorf("申請者メールアドレスが指定されていません。。")
 	}
 
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return "", err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return "", err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return "", err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return "", err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/G11220.do?aplyid=1106",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/G11220.do?aplyid=1106")
+	resp, err = r.get()
 	if err != nil {
 		return "", err
 	}
@@ -1104,19 +917,26 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 		return "", fmt.Errorf("%s", "一致するNetworkIDがありません。")
 	}
 
-	contentType := "application/x-www-form-urlencoded"
-
 	str := "destdisp=G11220&aplyid=102&" + networkIDStr + "&action=%8Am%94F"
 	// utf-8 => shift-jis
-	_, strByte, err := toShiftJIS(str)
+	reqBody, _, err := toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp"+actionURL, contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	body, _, err = readShiftJIS(resp.Body)
 	if err != nil {
@@ -1141,7 +961,7 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 	str = "destdisp=G11221&aplyid=102&return_date=" +
 		returnDate + "&aply_from_addr=" + notifyEMail + "&aply_from_addr_confirm=" + notifyEMail + "&action=%90%5C%90%BF"
 	// utf-8 => shift-jis
-	_, strByte, err = toShiftJIS(str)
+	reqBody, _, err = toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
@@ -1150,10 +970,19 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 		return "", fmt.Errorf("action URLの取得失敗")
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp"+actionURL, contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	body, _, err = readShiftJIS(resp.Body)
 	if err != nil {
@@ -1185,7 +1014,7 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 
 	str = "aplyid=102&inputconf=%8Am%94F"
 	// utf-8 => shift-jis
-	_, strByte, err = toShiftJIS(str)
+	reqBody, _, err = toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
@@ -1194,10 +1023,19 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 		return "", fmt.Errorf("action URLの取得失敗")
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp"+actionURL, contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	var recepNo string
 	// utf-8 => shift-jis

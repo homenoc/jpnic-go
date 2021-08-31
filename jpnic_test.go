@@ -90,7 +90,7 @@ func TestGetIPv6(t *testing.T) {
 		CAFilePath:   caFilePath,
 	}
 
-	data, err := con.GetAllIPv4(searchStr)
+	data, err := con.GetAllIPv6(searchStr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func TestReturnIPv4(t *testing.T) {
 		CAFilePath:   caFilePath,
 	}
 
-	data, err := con.ReturnIPv4("", "Y-NET", "", "noc@doornoc.net")
+	data, err := con.ReturnIPv4("", "Y-NET", "2021/8/31", "noc@doornoc.net")
 	if err != nil {
 		t.Fatal(err)
 	}
