@@ -7,8 +7,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -16,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 )
+
+var userAgent string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0"
 
 type Config struct {
 	URL          string
@@ -50,6 +50,8 @@ func (c *Config) Send(input WebTransaction) Result {
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
 
+	//req.Header.Set("User-Agent", "Golang_Spider_Bot/3.0")
+
 	contentType := "text/html"
 
 	str, err := Marshal(input)
@@ -59,9 +61,7 @@ func (c *Config) Send(input WebTransaction) Result {
 	}
 
 	// utf-8 => shift-jis
-	iostr := strings.NewReader(str)
-	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	_, strByte, err := toShiftJIS(str)
 	if err != nil {
 		result.Err = err
 		return result
@@ -214,9 +214,7 @@ func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
 
 	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
 	// utf-8 => shift-jis
-	iostr := strings.NewReader(str)
-	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	_, strByte, err := toShiftJIS(str)
 	if err != nil {
 		return nil, err
 	}
@@ -227,8 +225,7 @@ func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	_, bodyByte, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -350,9 +347,7 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 
 	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
 	// utf-8 => shift-jis
-	iostr := strings.NewReader(str)
-	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	_, strByte, err := toShiftJIS(str)
 	if err != nil {
 		return nil, err
 	}
@@ -363,13 +358,12 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -486,13 +480,12 @@ func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return info, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return info, err
 	}
@@ -643,13 +636,12 @@ func (c *Config) GetJPNICHandle(handle string) (JPNICHandleDetail, error) {
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return info, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return info, err
 	}
@@ -801,13 +793,12 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -847,9 +838,7 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 		"&netwrk_nm=" + networkName + "&rtn_date=" + returnDate +
 		"&aply_from_addr=" + notifyEMail + "&aply_from_addr_confirm=" + notifyEMail + "&action=%90%5C%90%BF"
 	// utf-8 => shift-jis
-	ioStr := strings.NewReader(str)
-	rio := transform.NewReader(ioStr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	_, strByte, err := toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
@@ -860,13 +849,12 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 	}
 
 	// utf-8 => shift-jis
-	reader = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err = ioutil.ReadAll(reader)
+	body, _, err = readShiftJIS(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	doc, err = goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -905,20 +893,18 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 		return "", fmt.Errorf("action URLの取得失敗")
 	}
 
-	if strings.Contains(string(bodyByte), "IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。") {
+	if strings.Contains(body, "IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。") {
 		return "", fmt.Errorf("IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。")
 	}
 
-	if !strings.Contains(string(bodyByte), "上記の申請内容でよろしければ、「確認」ボタンを押してください。") {
+	if !strings.Contains(body, "上記の申請内容でよろしければ、「確認」ボタンを押してください。") {
 		return "", fmt.Errorf("何かしらのエラーが発生しました。")
 	}
 
 	str = "org.apache.struts.taglib.html.TOKEN=" + token + "&prevDispId=" + prevDispId + "&aplyid=" + aplyId +
 		"&destdisp=" + destDisp + "&inputconf=%8Am%94F"
 	// utf-8 => shift-jis
-	ioStr = strings.NewReader(str)
-	rio = transform.NewReader(ioStr, japanese.ShiftJIS.NewEncoder())
-	strByte, err = ioutil.ReadAll(rio)
+	_, strByte, err = toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
@@ -929,13 +915,12 @@ func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (st
 	}
 
 	// utf-8 => shift-jis
-	reader = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err = ioutil.ReadAll(reader)
+	body, _, err = readShiftJIS(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	doc, err = goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -1044,13 +1029,12 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -1124,9 +1108,7 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 
 	str := "destdisp=G11220&aplyid=102&" + networkIDStr + "&action=%8Am%94F"
 	// utf-8 => shift-jis
-	ioStr := strings.NewReader(str)
-	rio := transform.NewReader(ioStr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	_, strByte, err := toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
@@ -1136,13 +1118,12 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 		return "", err
 	}
 
-	reader = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err = ioutil.ReadAll(reader)
+	body, _, err = readShiftJIS(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	doc, err = goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -1160,9 +1141,7 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 	str = "destdisp=G11221&aplyid=102&return_date=" +
 		returnDate + "&aply_from_addr=" + notifyEMail + "&aply_from_addr_confirm=" + notifyEMail + "&action=%90%5C%90%BF"
 	// utf-8 => shift-jis
-	ioStr = strings.NewReader(str)
-	rio = transform.NewReader(ioStr, japanese.ShiftJIS.NewEncoder())
-	strByte, err = ioutil.ReadAll(rio)
+	_, strByte, err = toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
@@ -1176,24 +1155,23 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 		return "", err
 	}
 
-	reader = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err = ioutil.ReadAll(reader)
+	body, _, err = readShiftJIS(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	if strings.Contains(string(bodyByte), "申請者メールアドレスを正しく入力してください") {
+	if strings.Contains(body, "申請者メールアドレスを正しく入力してください") {
 		return "", fmt.Errorf("JPNIC Response: 申請者メールアドレスを正しく入力してください")
 	}
 
-	if !strings.Contains(string(bodyByte), "上記の申請内容でよろしければ、｢確認｣ボタンを押してください。") {
+	if !strings.Contains(body, "上記の申請内容でよろしければ、｢確認｣ボタンを押してください。") {
 		return "", fmt.Errorf("JPNIC Response: 何かしらのエラーが発生しています。")
 	}
 
 	// actionのURLを取得
 	actionURL = ""
 
-	doc, err = goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -1207,9 +1185,7 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 
 	str = "aplyid=102&inputconf=%8Am%94F"
 	// utf-8 => shift-jis
-	ioStr = strings.NewReader(str)
-	rio = transform.NewReader(ioStr, japanese.ShiftJIS.NewEncoder())
-	strByte, err = ioutil.ReadAll(rio)
+	_, strByte, err = toShiftJIS(str)
 	if err != nil {
 		return "", err
 	}
@@ -1225,13 +1201,12 @@ func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string
 
 	var recepNo string
 	// utf-8 => shift-jis
-	reader = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err = ioutil.ReadAll(reader)
+	body, _, err = readShiftJIS(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	doc, err = goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return "", err
 	}
