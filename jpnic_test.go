@@ -43,8 +43,8 @@ func TestSend(t *testing.T) {
 
 	con := Config{
 		URL:          "https://iphostmaster.nic.ad.jp/webtrans/WebRegisterCtl",
-		CertFilePath: certFilePathV6,
-		KeyFilePath:  keyFilePathV6,
+		CertFilePath: certFilePathV4,
+		KeyFilePath:  keyFilePathV4,
 		CAFilePath:   caFilePath,
 	}
 
@@ -155,6 +155,20 @@ func TestGetJPNICHandle2(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(data)
+}
+
+func TestReturnIPv4(t *testing.T) {
+	con := Config{
+		CertFilePath: certFilePathV4,
+		KeyFilePath:  keyFilePathV4,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.ReturnIPv4("", "Y-NET", "", "noc@doornoc.net")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("受付番号: " + data)
 }
 
 func TestReturnIPv6(t *testing.T) {
