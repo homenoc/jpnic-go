@@ -177,3 +177,24 @@ type ReturnIPv6List struct {
 	InfraUserKind string `json:"infra_user_kind"`
 	AssignDate    string `json:"assign_date"`
 }
+
+type JPNICHandleInput struct {
+	IsJPNICHandle bool   `json:"is_jpnic_handle"`
+	JPNICHandle   string `json:"jpnic_handle"`
+	Name          string `json:"name"`
+	NameEn        string `json:"name_en"`
+	Email         string `json:"email"`
+	Org           string `json:"org"`
+	OrgEn         string `json:"org_en"`
+	Address       string `json:"address"`
+	AddressEn     string `json:"address_en"`
+	ZipCode       string `json:"zip_code"`
+	Division      string `json:"division"`
+	DivisionEn    string `json:"division_en"`
+	Title         string `json:"title"`
+	TitleEn       string `json:"title_en"`
+	Tel           string `json:"tel"`
+	Fax           string `json:"fax"`
+	NotifyMail    string `json:"notify_mail"`
+	ApplyMail     string `json:"apply_mail"`
+}

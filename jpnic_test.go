@@ -185,3 +185,27 @@ func TestReturnIPv6(t *testing.T) {
 	}
 	t.Log("受付番号: " + data)
 }
+
+func TestChangeUserInfo(t *testing.T) {
+	con := Config{
+		CertFilePath: certFilePathV4,
+		KeyFilePath:  keyFilePathV4,
+		CAFilePath:   caFilePath,
+	}
+
+	raw, err := ioutil.ReadFile("./user_detail.json")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	var input JPNICHandleInput
+
+	json.Unmarshal(raw, &input)
+
+	data, err := con.ChangeUserInfo(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("受付番号: " + data)
+}
