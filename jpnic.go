@@ -7,15 +7,14 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
-	"net/url"
 	"strconv"
 	"strings"
 )
+
+var userAgent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0"
+var contentType = "application/x-www-form-urlencoded"
 
 type Config struct {
 	URL          string
@@ -50,7 +49,9 @@ func (c *Config) Send(input WebTransaction) Result {
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
 
-	contentType := "text/html"
+	//req.Header.Set("User-Agent", "Golang_Spider_Bot/3.0")
+
+	contentType = "text/html"
 
 	str, err := Marshal(input)
 	if err != nil {
@@ -59,9 +60,7 @@ func (c *Config) Send(input WebTransaction) Result {
 	}
 
 	// utf-8 => shift-jis
-	iostr := strings.NewReader(str)
-	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	_, strByte, err := toShiftJIS(str)
 	if err != nil {
 		result.Err = err
 		return result
@@ -145,90 +144,47 @@ func (c *Config) Send(input WebTransaction) Result {
 }
 
 func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return nil, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return nil, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/portalv4list.do")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	contentType := "application/x-www-form-urlencoded"
-
-	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
+	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" +
+		searchStr + "&recepNo=&deliNo=" + "&action=%81%40%8C%9F%8D%F5%81%40"
 	// utf-8 => shift-jis
-	iostr := strings.NewReader(str)
-	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	reqBody, _, err := toShiftJIS(str)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp/jpnic/portalv4listmain.do", contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/portalv4listmain.do",
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	_, bodyByte, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -287,89 +243,52 @@ func (c *Config) GetAllIPv4(searchStr string) ([]InfoIPv4, error) {
 }
 
 func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return nil, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return nil, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	contentType := "application/x-www-form-urlencoded"
 
 	str := "destdisp=D12204&ipaddr=&sizeS=&sizeE=&netwrkName=&regDateS=&regDateE=&rtnDateS=&rtnDateE=&organizationName=&resceAdmSnm=" + searchStr + "&recepNo=&deliNo="
 	// utf-8 => shift-jis
-	iostr := strings.NewReader(str)
-	rio := transform.NewReader(iostr, japanese.ShiftJIS.NewEncoder())
-	strByte, err := ioutil.ReadAll(rio)
+	reqBody, _, err := toShiftJIS(str)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err = client.Post("https://iphostmaster.nic.ad.jp/jpnic/K11310Action.do", contentType, bytes.NewBuffer(strByte))
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/K11310Action.do",
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -421,78 +340,45 @@ func (c *Config) GetAllIPv6(searchStr string) ([]InfoIPv6, error) {
 func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
 	var info InfoDetail
 
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return info, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return info, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return info, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return info, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return info, err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + userURL,
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp" + userURL)
+	resp, err = r.get()
 	if err != nil {
 		return info, err
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return info, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return info, err
 	}
@@ -578,78 +464,45 @@ func (c *Config) GetIPUser(userURL string) (InfoDetail, error) {
 func (c *Config) GetJPNICHandle(handle string) (JPNICHandleDetail, error) {
 	var info JPNICHandleDetail
 
-	sessionID, err := randomStr()
+	client, err := c.initAccess()
 	if err != nil {
 		return info, err
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
-	if err != nil {
-		return info, err
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
-	if err != nil {
-		return info, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	cookies := []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
-	}
-
-	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return info, err
-	}
-
-	jar.SetCookies(urlObj, cookies)
-
-	client := &http.Client{Transport: transport, Jar: jar}
-
-	resp, err := client.Get("https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do")
+	resp, err := r.get()
 	if err != nil {
 		return info, err
 	}
 	defer resp.Body.Close()
 
-	sessionID = resp.Header.Get("Set-Cookie")[11:43]
-
-	cookies = []*http.Cookie{
-		{
-			Name:  "JSESSIONID",
-			Value: sessionID,
-		},
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/entryinfo_handle.do?jpnic_hdl=" + handle,
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
 	}
 
-	jar.SetCookies(urlObj, cookies)
-
-	resp, err = client.Get("https://iphostmaster.nic.ad.jp/jpnic/entryinfo_handle.do?jpnic_hdl=" + handle)
+	resp, err = r.get()
 	if err != nil {
 		return info, err
 	}
 	defer resp.Body.Close()
 
-	reader := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-	bodyByte, err := ioutil.ReadAll(reader)
+	body, _, err := readShiftJIS(resp.Body)
 	if err != nil {
 		return info, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(bodyByte)))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return info, err
 	}
@@ -722,4 +575,724 @@ func (c *Config) GetJPNICHandle(handle string) (JPNICHandleDetail, error) {
 	})
 
 	return info, err
+}
+
+func (c *Config) ReturnIPv4(v4, networkName, returnDate, notifyEMail string) (string, error) {
+	// input check
+	if v4 == "" {
+		return "", fmt.Errorf("IPアドレスが指定されていません。")
+	}
+	if notifyEMail == "" {
+		return "", fmt.Errorf("申請者メールアドレスが指定されていません。。")
+	}
+	if networkName == "" {
+		return "", fmt.Errorf("ネットワーク名が指定されていません。。")
+	}
+
+	client, err := c.initAccess()
+	if err != nil {
+		return "", err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/assireturnv4regist.do?aplyid=108",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	var actionURL string
+	var token, destDisp, aplyId string
+
+	// actionのURLを取得
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		action, _ := formHtml.Attr("action")
+		if strings.Contains(action, "registconf") {
+			actionURL = action
+			doc.Find("input").Each(func(index int, s *goquery.Selection) {
+				name, nameExists := s.Attr("name")
+				value, valueExists := s.Attr("value")
+				if nameExists && valueExists {
+					switch name {
+					case "org.apache.struts.taglib.html.TOKEN":
+						token = value
+					case "destdisp":
+						destDisp = value
+					case "aplyid":
+						aplyId = value
+					}
+				}
+			})
+		}
+	})
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	str := "org.apache.struts.taglib.html.TOKEN=" + token + "&destdisp=" + destDisp + "&aplyid=" + aplyId + "&ipaddr=" + v4 +
+		"&netwrk_nm=" + networkName + "&rtn_date=" + returnDate +
+		"&aply_from_addr=" + notifyEMail + "&aply_from_addr_confirm=" + notifyEMail + "&action=%90%5C%90%BF"
+	// utf-8 => shift-jis
+	reqBody, _, err := toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// utf-8 => shift-jis
+	body, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	// actionのURLを取得
+	actionURL = ""
+	token = ""
+	var prevDispId string
+	aplyId = ""
+	destDisp = ""
+
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		action, _ := formHtml.Attr("action")
+		if strings.Contains(action, "apply") {
+			actionURL = action
+			doc.Find("input").Each(func(index int, s *goquery.Selection) {
+				name, nameExists := s.Attr("name")
+				value, valueExists := s.Attr("value")
+				if nameExists && valueExists {
+					switch name {
+					case "org.apache.struts.taglib.html.TOKEN":
+						token = value
+					case "prevDispId":
+						prevDispId = value
+					case "aplyid":
+						aplyId = value
+					case "destdisp":
+						destDisp = value
+					}
+				}
+			})
+		}
+	})
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	if strings.Contains(body, "IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。") {
+		return "", fmt.Errorf("IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。")
+	}
+
+	if !strings.Contains(body, "上記の申請内容でよろしければ、「確認」ボタンを押してください。") {
+		return "", fmt.Errorf("何かしらのエラーが発生しました。")
+	}
+
+	str = "org.apache.struts.taglib.html.TOKEN=" + token + "&prevDispId=" + prevDispId + "&aplyid=" + aplyId +
+		"&destdisp=" + destDisp + "&inputconf=%8Am%94F"
+	// utf-8 => shift-jis
+	reqBody, _, err = toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// utf-8 => shift-jis
+	body, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	var recepNo string
+
+	// actionのURLを取得
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						ok := false
+						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
+							if index == 0 && strings.Contains(tableCell2.Text(), "受付番号") {
+								ok = true
+							} else if index == 1 && ok {
+								recepNo = tableCell2.Text()
+							}
+						})
+					})
+				})
+			})
+		})
+	})
+
+	return recepNo, nil
+}
+
+func (c *Config) ReturnIPv6(v6 []string, notifyEMail, returnDate string) (string, error) {
+	// input check
+	if len(v6) == 0 {
+		return "", fmt.Errorf("IPアドレスが指定されていません。")
+	}
+	for _, ip := range v6 {
+		if ip == "" {
+			return "", fmt.Errorf("文字列が空のものがあります。")
+		}
+	}
+	if notifyEMail == "" {
+		return "", fmt.Errorf("申請者メールアドレスが指定されていません。。")
+	}
+
+	client, err := c.initAccess()
+	if err != nil {
+		return "", err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/G11220.do?aplyid=1106",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	var actionURL string
+
+	// actionのURLを取得
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		action, _ := formHtml.Attr("action")
+		if strings.Contains(action, "Dispatch") {
+			actionURL = action
+		}
+	})
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	//count := 0
+	var returnIPv6List []ReturnIPv6List
+
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						var tmpIPv6List ReturnIPv6List
+						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
+							dataStr := strings.TrimSpace(tableCell2.Text())
+
+							switch index {
+							case 0:
+								tmpIPv6List.NetworkID, _ = tableCell2.Find("input").Attr("value")
+							case 1:
+								tmpIPv6List.IPAddress = dataStr
+							case 2:
+								tmpIPv6List.NetworkName = dataStr
+							case 3:
+								tmpIPv6List.InfraUserKind = dataStr
+							case 4:
+								tmpIPv6List.AssignDate = dataStr
+							}
+						})
+						returnIPv6List = append(returnIPv6List, tmpIPv6List)
+					})
+				})
+			})
+		})
+	})
+
+	var networkIDStr string
+
+	for _, returnIPv6 := range returnIPv6List {
+		for _, tmpIP := range v6 {
+			if returnIPv6.IPAddress == tmpIP {
+				if networkIDStr == "" {
+					networkIDStr = "netwrkId=" + returnIPv6.NetworkID
+				} else {
+					networkIDStr += "&netwrkId=" + returnIPv6.NetworkID
+				}
+				break
+			}
+		}
+	}
+
+	if networkIDStr == "" {
+		return "", fmt.Errorf("%s", "一致するNetworkIDがありません。")
+	}
+
+	str := "destdisp=G11220&aplyid=102&" + networkIDStr + "&action=%8Am%94F"
+	// utf-8 => shift-jis
+	reqBody, _, err := toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	actionURL = ""
+
+	// actionのURLを取得
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		action, _ := formHtml.Attr("action")
+		if strings.Contains(action, "Dispatch") {
+			actionURL = action
+		}
+	})
+
+	str = "destdisp=G11221&aplyid=102&return_date=" +
+		returnDate + "&aply_from_addr=" + notifyEMail + "&aply_from_addr_confirm=" + notifyEMail + "&action=%90%5C%90%BF"
+	// utf-8 => shift-jis
+	reqBody, _, err = toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if strings.Contains(body, "申請者メールアドレスを正しく入力してください") {
+		return "", fmt.Errorf("JPNIC Response: 申請者メールアドレスを正しく入力してください")
+	}
+
+	if !strings.Contains(body, "上記の申請内容でよろしければ、｢確認｣ボタンを押してください。") {
+		return "", fmt.Errorf("JPNIC Response: 何かしらのエラーが発生しています。")
+	}
+
+	// actionのURLを取得
+	actionURL = ""
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		action, _ := formHtml.Attr("action")
+		if strings.Contains(action, "Dispatch") {
+			actionURL = action
+		}
+	})
+
+	str = "aplyid=102&inputconf=%8Am%94F"
+	// utf-8 => shift-jis
+	reqBody, _, err = toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var recepNo string
+	// utf-8 => shift-jis
+	body, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	// actionのURLを取得
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						ok := false
+						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
+							if index == 0 && strings.Contains(tableCell2.Text(), "受付番号") {
+								ok = true
+							} else if index == 1 && ok {
+								recepNo = tableCell2.Text()
+							}
+						})
+					})
+				})
+			})
+		})
+	})
+
+	return recepNo, nil
+}
+
+func (c *Config) ChangeUserInfo(input JPNICHandleInput) (string, error) {
+	client, err := c.initAccess()
+	if err != nil {
+		return "", err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/disppocregist.do?aplyid=501",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	var actionURL string
+	var token, destDisp, aplyId string
+
+	// actionのURLを取得
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		action, _ := formHtml.Attr("action")
+		if strings.Contains(action, "regist.do") {
+			actionURL = action
+			doc.Find("input").Each(func(index int, s *goquery.Selection) {
+				name, nameExists := s.Attr("name")
+				value, valueExists := s.Attr("value")
+				if nameExists && valueExists {
+					switch name {
+					case "org.apache.struts.taglib.html.TOKEN":
+						token = value
+					case "destdisp":
+						destDisp = value
+					case "aplyid":
+						aplyId = value
+					}
+				}
+			})
+		}
+	})
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	// 初期値はJPNIC Handleで指定していた場合を想定
+	kind := "person"
+	if !input.IsJPNICHandle {
+		// Group Handleで指定していた場合
+		kind = "group"
+	}
+
+	str := "org.apache.struts.taglib.html.TOKEN=" + token + "&destdisp=" + destDisp + "&aplyid=" + aplyId +
+		"&kind=" + kind + "&jpnic_hdl=" + input.JPNICHandle +
+		"&name_jp=" + input.Name + "&name=" + input.NameEn + "&email=" + input.Email +
+		"&org_nm_jp=" + input.Org + "&org_nm=" + input.OrgEn +
+		"&zipcode=" + input.ZipCode + "&addr_jp=" + input.Address + "&addr=" + input.AddressEn +
+		"&division_jp=" + input.Division + "&division=" + input.DivisionEn +
+		"&title_jp=" + input.Title + "&title=" + input.TitleEn +
+		"&phone=" + input.Tel + "&fax=" + input.Fax + "&ntfy_mail=" + input.NotifyMail +
+		"&aply_from_addr=" + input.ApplyMail + "&aply_from_addr_confirm=" + input.ApplyMail + "&action=%90%5C%90%BF"
+
+	// utf-8 => shift-jis
+	reqBody, _, err := toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// utf-8 => shift-jis
+	body, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	// actionのURLを取得
+	actionURL = ""
+	token = ""
+	var prevDispId string
+	aplyId = ""
+	destDisp = ""
+
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		action, _ := formHtml.Attr("action")
+		if strings.Contains(action, "apply") {
+			actionURL = action
+			doc.Find("input").Each(func(index int, s *goquery.Selection) {
+				name, nameExists := s.Attr("name")
+				value, valueExists := s.Attr("value")
+				if nameExists && valueExists {
+					switch name {
+					case "org.apache.struts.taglib.html.TOKEN":
+						token = value
+					case "prevDispId":
+						prevDispId = value
+					case "aplyid":
+						aplyId = value
+					case "destdisp":
+						destDisp = value
+					}
+				}
+			})
+		}
+	})
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	if strings.Contains(body, "IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。") {
+		return "", fmt.Errorf("IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。")
+	}
+
+	if strings.Contains(body, "JPNICハンドルを正しく入力してください") {
+		return "", fmt.Errorf("正しいJPNICハンドルを入力してください")
+	}
+
+	if !strings.Contains(body, "上記の申請内容でよろしければ、「確認」ボタンを押してください。") {
+		return "", fmt.Errorf("何かしらのエラーが発生しました。")
+	}
+
+	str = "org.apache.struts.taglib.html.TOKEN=" + token + "&prevDispId=" + prevDispId + "&aplyid=" + aplyId +
+		"&destdisp=" + destDisp + "&inputconf=%8Am%94F"
+	// utf-8 => shift-jis
+	reqBody, _, err = toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp" + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// utf-8 => shift-jis
+	body, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	var recepNo string
+
+	// actionのURLを取得
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						ok := false
+						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
+							if index == 0 && strings.Contains(tableCell2.Text(), "受付番号") {
+								ok = true
+							} else if index == 1 && ok {
+								recepNo = tableCell2.Text()
+							}
+						})
+					})
+				})
+			})
+		})
+	})
+
+	return recepNo, nil
 }
