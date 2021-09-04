@@ -170,6 +170,17 @@ type InfoIPv6 struct {
 	KindID      string `json:"kind_id"`
 }
 
+type RequestInfo struct {
+	RecepNo      string `json:"recep_no"`
+	DeliNo       string `json:"deli_no"`
+	ApplyKind    string `json:"apply_kind"`
+	ApplyClass   string `json:"apply_class"`
+	Applicant    string `json:"applicant"`
+	ApplyDate    string `json:"apply_date"`
+	CompleteDate string `json:"complete_date"`
+	Status       string `json:"status"`
+}
+
 type ReturnIPv6List struct {
 	NetworkID     string `json:"network_id"`
 	IPAddress     string `json:"ip_address"`

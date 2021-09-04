@@ -1296,3 +1296,160 @@ func (c *Config) ChangeUserInfo(input JPNICHandleInput) (string, error) {
 
 	return recepNo, nil
 }
+
+func (c *Config) GetRequestList(searchStr string) ([]RequestInfo, error) {
+	client, err := c.initAccess()
+	if err != nil {
+		return nil, err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	str := "destdisp=D10009&startRecepNo=" + searchStr + "&endRecepNo=&deliNo=&aplyKind=&aplyClass=&resceAdmSnm=&aplyDateS=&aplyDateE=&completDateS=&completDateE=&statusId=&pswdResceNewConfirm=%81%40%8C%9F%8D%F5%81%40"
+	// utf-8 => shift-jis
+	reqBody, _, err := toShiftJIS(str)
+	if err != nil {
+		return nil, err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/applysearchlink.do",
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	var infos []RequestInfo
+
+	doc.Find("table").Each(func(_ int, tableHtml *goquery.Selection) {
+		tableHtml.Find("tr").Each(func(_ int, rowHtml *goquery.Selection) {
+			var info RequestInfo
+			rowHtml.Find("td").Each(func(index int, tableCell *goquery.Selection) {
+				dataStr := strings.TrimSpace(tableCell.Text())
+
+				switch index {
+				case 0:
+					info.RecepNo = dataStr
+				case 1:
+					info.DeliNo = dataStr
+				case 2:
+					info.ApplyKind = dataStr
+				case 3:
+					info.ApplyClass = dataStr
+				case 4:
+					info.Applicant = dataStr
+				case 5:
+					info.ApplyDate = dataStr
+				case 6:
+					info.CompleteDate = dataStr
+				case 7:
+					info.Status = dataStr
+				}
+				count++
+			})
+			if count == 8 {
+				infos = append(infos, info)
+			}
+			count = 0
+		})
+	})
+
+	infos = infos[1:]
+
+	return infos, nil
+}
+
+func (c *Config) GetDetailRequest(recepNo string) (string, error) {
+	client, err := c.initAccess()
+	if err != nil {
+		return "", err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/applyform.do?recepNo=" + recepNo,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	var info string
+
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(index int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
+							dataStr := strings.TrimSpace(tableCell2.Text())
+							if dataStr != "" {
+								info = "\n" + dataStr
+							}
+						})
+					})
+				})
+			})
+		})
+	})
+
+	return info, nil
+}
