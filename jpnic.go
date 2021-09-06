@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -1451,5 +1453,205 @@ func (c *Config) GetDetailRequest(recepNo string) (string, error) {
 		})
 	})
 
+	return info, nil
+}
+
+func (c *Config) GetResourceManagement() (ResourceInfo, error) {
+	var info ResourceInfo
+
+	client, err := c.initAccess()
+	if err != nil {
+		return info, err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return info, err
+	}
+	defer resp.Body.Close()
+
+	url, err := getLink(client, "資源管理者情報")
+	if err != nil {
+		return info, err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/" + url,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.get()
+	if err != nil {
+		return info, err
+	}
+	defer resp.Body.Close()
+
+	body, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return info, err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return info, err
+	}
+
+	re := regexp.MustCompile(`\(([^}]*)\)`)
+	err = nil
+
+	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
+			rowHtml1.Find("td").Each(func(index int, tableCell1 *goquery.Selection) {
+				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
+					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
+						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
+							tableCell2.Find("table").Each(func(_ int, tableHtml3 *goquery.Selection) {
+								tableHtml3.Find("tr").Each(func(_ int, rowHtml3 *goquery.Selection) {
+									rowHtml3.Find("td").Each(func(index int, tableCell3 *goquery.Selection) {
+										tableCell3.Find("table").Each(func(_ int, tableHtml4 *goquery.Selection) {
+											tableHtml4.Find("tr").Each(func(_ int, rowHtml4 *goquery.Selection) {
+												var title string
+												cidrBlockSegment := false
+												var cidrBlock ResourceCIDRBlock
+												rowHtml4.Find("td").Each(func(index int, tableCell4 *goquery.Selection) {
+													dataStr := strings.TrimSpace(tableCell4.Text())
+
+													switch index {
+													case 0:
+														cidrBlockSegment = false
+														title = dataStr
+														addressDetailURL, addressExists := tableCell4.Find("a").Attr("href")
+														if addressExists {
+															cidrBlockSegment = strings.Contains(addressDetailURL, "entryinfo")
+															splitAddress := strings.Split(dataStr, "(")
+															tmpAddress := strings.Replace(splitAddress[0], "\n", "", 1)
+															address := strings.Replace(tmpAddress, "	", "", 3)
+															cidrBlock.Address = strings.TrimSpace(address)
+														}
+													case 1:
+														switch title {
+														case "資源管理者番号":
+															info.ResourceManagerInfo.ResourceManagerNo = dataStr
+														case "資源管理者略称":
+															info.ResourceManagerInfo.Ryakusyo = dataStr
+														case "管理組織名":
+															info.ResourceManagerInfo.Org = dataStr
+														case "Organization":
+															info.ResourceManagerInfo.OrgEn = dataStr
+														case "郵便番号":
+															info.ResourceManagerInfo.ZipCode = dataStr
+														case "住所":
+															info.ResourceManagerInfo.Address = dataStr
+														case "Address":
+															info.ResourceManagerInfo.AddressEn = dataStr
+														case "電話番号":
+															info.ResourceManagerInfo.Tel = dataStr
+														case "FAX番号":
+															info.ResourceManagerInfo.Fax = dataStr
+														case "資源管理責任者":
+															info.ResourceManagerInfo.ResourceManagementManager = dataStr
+														case "連絡担当窓口":
+															info.ResourceManagerInfo.ContactPerson = dataStr
+														case "一般問い合わせ窓口":
+															info.ResourceManagerInfo.Inquiry = dataStr
+														case "資源管理者通知アドレス":
+															info.ResourceManagerInfo.NotifyMail = dataStr
+														case "アサインメントウィンドウサイズ":
+															info.ResourceManagerInfo.AssigmentWindowSize = dataStr
+														case "管理開始日":
+															info.ResourceManagerInfo.ManagementStartDate = dataStr
+														case "管理終了日":
+															info.ResourceManagerInfo.ManagementEndDate = dataStr
+														case "最終更新日":
+															info.ResourceManagerInfo.UpdateDate = dataStr
+														default:
+															if cidrBlockSegment {
+																cidrBlock.AssignDate = dataStr
+															}
+														}
+													case 2:
+														switch title {
+														case "総利用率":
+															match := re.FindStringSubmatch(dataStr)
+															if len(match) == 0 {
+																err = fmt.Errorf("データが存在しません")
+																break
+															}
+															splitAddress := strings.Split(match[1], "/")
+
+															info.UsedAddress, err = strconv.ParseUint(splitAddress[0], 10, 32)
+															if err != nil {
+																break
+															}
+															info.AllAddress, err = strconv.ParseUint(splitAddress[1], 10, 32)
+															if err != nil {
+																break
+															}
+
+															info.UtilizationRatio, err = strconv.ParseFloat(dataStr[:strings.Index(dataStr, "%")], 16)
+															if err != nil {
+																break
+															}
+														case "ＡＤ　ｒａｔｉｏ":
+															log.Println(strconv.Itoa(index) + ": " + dataStr)
+
+															info.ADRatio, err = strconv.ParseFloat(dataStr, 16)
+															if err != nil {
+																break
+															}
+														default:
+															if cidrBlockSegment {
+																match := re.FindStringSubmatch(dataStr)
+																if len(match) == 0 {
+																	err = fmt.Errorf("データが存在しません")
+																	break
+																}
+																splitAddress := strings.Split(match[1], "/")
+
+																cidrBlock.UsedAddress, err = strconv.ParseUint(splitAddress[0], 10, 32)
+																if err != nil {
+																	break
+																}
+																cidrBlock.AllAddress, err = strconv.ParseUint(splitAddress[1], 10, 32)
+																if err != nil {
+																	break
+																}
+
+																cidrBlock.UtilizationRatio, err = strconv.ParseFloat(dataStr[:strings.Index(dataStr, "%")], 16)
+																if err != nil {
+																	break
+																}
+															}
+														}
+													}
+													if cidrBlockSegment && index == 2 {
+														info.ResourceCIDRBlock = append(info.ResourceCIDRBlock, cidrBlock)
+													}
+												})
+											})
+										})
+									})
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
+
+	if err != nil {
+		return info, err
+	}
 	return info, nil
 }
