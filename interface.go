@@ -170,6 +170,17 @@ type InfoIPv6 struct {
 	KindID      string `json:"kind_id"`
 }
 
+type RequestInfo struct {
+	RecepNo      string `json:"recep_no"`
+	DeliNo       string `json:"deli_no"`
+	ApplyKind    string `json:"apply_kind"`
+	ApplyClass   string `json:"apply_class"`
+	Applicant    string `json:"applicant"`
+	ApplyDate    string `json:"apply_date"`
+	CompleteDate string `json:"complete_date"`
+	Status       string `json:"status"`
+}
+
 type ReturnIPv6List struct {
 	NetworkID     string `json:"network_id"`
 	IPAddress     string `json:"ip_address"`
@@ -197,4 +208,41 @@ type JPNICHandleInput struct {
 	Fax           string `json:"fax"`
 	NotifyMail    string `json:"notify_mail"`
 	ApplyMail     string `json:"apply_mail"`
+}
+
+type ResourceInfo struct {
+	ResourceManagerInfo ResourceManagerInfo `json:"resource_manager_info"`
+	UtilizationRatio    float64             `json:"utilization_ratio"`
+	UsedAddress         uint64              `json:"used_address"`
+	AllAddress          uint64              `json:"all_address"`
+	ADRatio             float64             `json:"ad_ratio"`
+	ResourceCIDRBlock   []ResourceCIDRBlock `json:"resource_cidr_block"`
+}
+
+type ResourceManagerInfo struct {
+	ResourceManagerNo         string `json:"resource_manager_no"`
+	Ryakusyo                  string `json:"ryakusho"`
+	Org                       string `json:"org"`
+	OrgEn                     string `json:"org_en"`
+	ZipCode                   string `json:"zip_code"`
+	Address                   string `json:"address"`
+	AddressEn                 string `json:"address_en"`
+	Tel                       string `json:"tel"`
+	Fax                       string `json:"fax"`
+	ResourceManagementManager string `json:"resource_management_manager"`
+	ContactPerson             string `json:"contact_person"`
+	Inquiry                   string `json:"inquiry"`
+	NotifyMail                string `json:"notify_mail"`
+	AssigmentWindowSize       string `json:"assigment_window_size"`
+	ManagementStartDate       string `json:"management_start_date"`
+	ManagementEndDate         string `json:"management_end_date"`
+	UpdateDate                string `json:"update_date"`
+}
+
+type ResourceCIDRBlock struct {
+	Address          string  `json:"address"`
+	AssignDate       string  `json:"assign_date"`
+	UtilizationRatio float64 `json:"utilization_ratio"`
+	UsedAddress      uint64  `json:"used_address"`
+	AllAddress       uint64  `json:"all_address"`
 }

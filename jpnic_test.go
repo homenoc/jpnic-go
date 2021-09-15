@@ -209,3 +209,54 @@ func TestChangeUserInfo(t *testing.T) {
 	}
 	t.Log("受付番号: " + data)
 }
+
+func TestRequestInfo(t *testing.T) {
+	con := Config{
+		CertFilePath: certFilePathV4,
+		KeyFilePath:  keyFilePathV4,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.GetRequestList("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tmp := range data {
+		t.Log(tmp)
+	}
+}
+
+func TestRecepInfo(t *testing.T) {
+	con := Config{
+		CertFilePath: certFilePathV4,
+		KeyFilePath:  keyFilePathV4,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.GetDetailRequest("020210816000002")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(data)
+}
+
+func TestGetResourceManagement(t *testing.T) {
+	con := Config{
+		CertFilePath: certFilePathV4,
+		KeyFilePath:  keyFilePathV4,
+		CAFilePath:   caFilePath,
+	}
+
+	data, err := con.GetResourceManagement()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tmp := range data.ResourceCIDRBlock {
+		t.Log(tmp)
+	}
+
+	//t.Log(data)
+}
