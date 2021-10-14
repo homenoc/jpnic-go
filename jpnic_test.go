@@ -249,7 +249,7 @@ func TestGetResourceManagement(t *testing.T) {
 		CAFilePath:   caFilePath,
 	}
 
-	data, err := con.GetResourceManagement()
+	data, html, err := con.GetResourceManagement()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,5 +258,7 @@ func TestGetResourceManagement(t *testing.T) {
 		t.Log(tmp)
 	}
 
-	//t.Log(data)
+	t.Log("--------------HTML--------------")
+
+	t.Log(html)
 }

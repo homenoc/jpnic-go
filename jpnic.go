@@ -1456,12 +1456,12 @@ func (c *Config) GetDetailRequest(recepNo string) (string, error) {
 	return info, nil
 }
 
-func (c *Config) GetResourceManagement() (ResourceInfo, error) {
+func (c *Config) GetResourceManagement() (ResourceInfo, string, error) {
 	var info ResourceInfo
-
+	var html string
 	client, err := c.initAccess()
 	if err != nil {
-		return info, err
+		return info, html, err
 	}
 
 	r := request{
@@ -1474,13 +1474,13 @@ func (c *Config) GetResourceManagement() (ResourceInfo, error) {
 
 	resp, err := r.get()
 	if err != nil {
-		return info, err
+		return info, html, err
 	}
 	defer resp.Body.Close()
 
 	url, err := getLink(client, "資源管理者情報")
 	if err != nil {
-		return info, err
+		return info, html, err
 	}
 
 	r = request{
@@ -1492,18 +1492,18 @@ func (c *Config) GetResourceManagement() (ResourceInfo, error) {
 
 	resp, err = r.get()
 	if err != nil {
-		return info, err
+		return info, html, err
 	}
 	defer resp.Body.Close()
 
-	body, _, err := readShiftJIS(resp.Body)
+	html, _, err = readShiftJIS(resp.Body)
 	if err != nil {
-		return info, err
+		return info, html, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		return info, err
+		return info, html, err
 	}
 
 	re := regexp.MustCompile(`\(([^}]*)\)`)
@@ -1651,7 +1651,7 @@ func (c *Config) GetResourceManagement() (ResourceInfo, error) {
 	})
 
 	if err != nil {
-		return info, err
+		return info, html, err
 	}
-	return info, nil
+	return info, html, nil
 }
