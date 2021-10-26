@@ -43,14 +43,14 @@ func (c *Config) initAccess() (*http.Client, error) {
 
 	jar.SetCookies(urlObj, cookies)
 
-	// Load Pfx File
-	pfxBytes, err := ioutil.ReadFile(c.PfxFilePath)
+	// Load .p12 File
+	p12Bytes, err := ioutil.ReadFile(c.PfxFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	// .pfx decode
-	key, cert, err := pkcs12.Decode(pfxBytes, c.PfxPass)
+	// .p12 decode
+	key, cert, err := pkcs12.Decode(p12Bytes, c.PfxPass)
 	if err != nil {
 		return nil, err
 	}

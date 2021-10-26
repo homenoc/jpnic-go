@@ -29,15 +29,15 @@ type Config struct {
 func (c *Config) Send(input WebTransaction) Result {
 	var result Result
 
-	// Load Pfx File
-	pfxBytes, err := ioutil.ReadFile(c.PfxFilePath)
+	// Load .p12 File
+	p12Bytes, err := ioutil.ReadFile(c.PfxFilePath)
 	if err != nil {
 		result.Err = err
 		return result
 	}
 
-	// .pfx decode
-	key, cert, err := pkcs12.Decode(pfxBytes, c.PfxPass)
+	// .p12 decode
+	key, cert, err := pkcs12.Decode(p12Bytes, c.PfxPass)
 	if err != nil {
 		result.Err = err
 		return result
