@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/crypto/pkcs12"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,33 +20,45 @@ var userAgent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101
 var contentType = "application/x-www-form-urlencoded"
 
 type Config struct {
-	URL          string
-	CertFilePath string
-	KeyFilePath  string
-	CAFilePath   string
+	URL         string
+	PfxFilePath string
+	PfxPass     string
+	CAFilePath  string
 }
 
 func (c *Config) Send(input WebTransaction) Result {
 	var result Result
 
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
+	// Load Pfx File
+	pfxBytes, err := ioutil.ReadFile(c.PfxFilePath)
+	if err != nil {
+		result.Err = err
+		return result
+	}
+
+	// .pfx decode
+	key, cert, err := pkcs12.Decode(pfxBytes, c.PfxPass)
 	if err != nil {
 		result.Err = err
 		return result
 	}
 
 	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
+	caCertBytes, err := ioutil.ReadFile(c.CAFilePath)
 	if err != nil {
 		result.Err = err
 		return result
 	}
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	caCertPool.AppendCertsFromPEM(caCertBytes)
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
+		Certificates: []tls.Certificate{{
+			Certificate: [][]byte{cert.Raw},
+			PrivateKey:  key,
+			Leaf:        cert,
+		}},
+		RootCAs: caCertPool,
 	}
 	tlsConfig.BuildNameToCertificate()
 	transport := &http.Transport{TLSClientConfig: tlsConfig}

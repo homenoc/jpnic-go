@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"golang.org/x/crypto/pkcs12"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -42,23 +43,33 @@ func (c *Config) initAccess() (*http.Client, error) {
 
 	jar.SetCookies(urlObj, cookies)
 
-	// Cert
-	cert, err := tls.LoadX509KeyPair(c.CertFilePath, c.KeyFilePath)
+	// Load Pfx File
+	pfxBytes, err := ioutil.ReadFile(c.PfxFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// .pfx decode
+	key, cert, err := pkcs12.Decode(pfxBytes, c.PfxPass)
 	if err != nil {
 		return nil, err
 	}
 
 	// Load CA
-	caCert, err := ioutil.ReadFile(c.CAFilePath)
+	caCertBytes, err := ioutil.ReadFile(c.CAFilePath)
 	if err != nil {
 		return nil, err
 	}
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	caCertPool.AppendCertsFromPEM(caCertBytes)
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
+		Certificates: []tls.Certificate{{
+			Certificate: [][]byte{cert.Raw},
+			PrivateKey:  key,
+			Leaf:        cert,
+		}},
+		RootCAs: caCertPool,
 	}
 	tlsConfig.BuildNameToCertificate()
 

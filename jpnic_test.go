@@ -8,19 +8,20 @@ import (
 	"testing"
 )
 
-var caFilePath = "/home/yonedayuto/Documents/HomeNOC/cert/rootcacert_r3.cer"
+var caFilePath = "/Users/y-yoneda/github/homenoc/jpnic/cert/rootcacert_r3.cer"
+
+//HomeNOC
+var pfxPass = "homenoc"
+var pfxFilePathV4 = "/Users/y-yoneda/github/homenoc/jpnic/cert/v4-openssl.p12"
+var pfxFilePathV6 = "/Users/y-yoneda/github/homenoc/jpnic/cert/v6-openssl.p12"
 
 // HomeNOC
-//var certFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem"
-//var keyFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem"
-//var certFilePathV6 = "/home/yonedayuto/Documents/HomeNOC/cert/v6-cert.pem"
-//var keyFilePathV6 = "/home/yonedayuto/Documents/HomeNOC/cert/v6-prvkey.pem"
+//var pfxFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem"
+//var pfxFilePathV6 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-prvkey.pem"
 
 // doornoc
-var certFilePathV4 = "/home/yonedayuto/Documents/doornoc/cert/v4-cert.pem"
-var keyFilePathV4 = "/home/yonedayuto/Documents/doornoc/cert/v4-prvkey.pem"
-var certFilePathV6 = "/home/yonedayuto/Documents/doornoc/cert/v6-cert.pem"
-var keyFilePathV6 = "/home/yonedayuto/Documents/doornoc/cert/v6-prvkey.pem"
+//var pfxFilePathV4 = "/home/yonedayuto/Documents/doornoc/cert/v4-cert.pem"
+//var pfxFilePathV6 = "/home/yonedayuto/Documents/doornoc/cert/v4-prvkey.pem"
 
 // Search String (HOMENOC/DOORNOC)
 var searchStr = "HOMENOC"
@@ -42,10 +43,10 @@ func TestSend(t *testing.T) {
 	json.Unmarshal(raw, &w)
 
 	con := Config{
-		URL:          "https://iphostmaster.nic.ad.jp/webtrans/WebRegisterCtl",
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		URL:         "https://iphostmaster.nic.ad.jp/webtrans/WebRegisterCtl",
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	result := con.Send(w)
@@ -65,10 +66,10 @@ func TestSend(t *testing.T) {
 
 func TestGetIPv4(t *testing.T) {
 	con := Config{
-		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.GetAllIPv4(searchStr)
@@ -84,10 +85,10 @@ func TestGetIPv4(t *testing.T) {
 
 func TestGetIPv6(t *testing.T) {
 	con := Config{
-		URL:          "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
-		CertFilePath: certFilePathV6,
-		KeyFilePath:  keyFilePathV6,
-		CAFilePath:   caFilePath,
+		URL: "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		//CertFilePath: certFilePathV6,
+		//KeyFilePath:  keyFilePathV6,
+		CAFilePath: caFilePath,
 	}
 
 	data, err := con.GetAllIPv6(searchStr)
@@ -102,9 +103,9 @@ func TestGetIPv6(t *testing.T) {
 
 func TestGetIPv4User(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.GetIPUser(v4UserURL)
@@ -117,9 +118,9 @@ func TestGetIPv4User(t *testing.T) {
 
 func TestGetIPv6User(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV6,
-		KeyFilePath:  keyFilePathV6,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV6,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.GetIPUser(v6UserURL)
@@ -131,9 +132,9 @@ func TestGetIPv6User(t *testing.T) {
 
 func TestGetJPNICHandle1(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV6,
-		KeyFilePath:  keyFilePathV6,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV6,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.GetJPNICHandle(JPNICHandle1)
@@ -145,9 +146,9 @@ func TestGetJPNICHandle1(t *testing.T) {
 
 func TestGetJPNICHandle2(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV6,
-		KeyFilePath:  keyFilePathV6,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV6,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.GetJPNICHandle(JPNICHandle2)
@@ -159,9 +160,9 @@ func TestGetJPNICHandle2(t *testing.T) {
 
 func TestReturnIPv4(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.ReturnIPv4("", "Y-NET", "2021/8/31", "noc@doornoc.net")
@@ -173,9 +174,9 @@ func TestReturnIPv4(t *testing.T) {
 
 func TestReturnIPv6(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV6,
-		KeyFilePath:  keyFilePathV6,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV6,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	// IPv6アドレスの表記はJPNIC側に合わせる必要があります。
@@ -188,9 +189,9 @@ func TestReturnIPv6(t *testing.T) {
 
 func TestChangeUserInfo(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	raw, err := ioutil.ReadFile("./user_detail.json")
@@ -212,9 +213,9 @@ func TestChangeUserInfo(t *testing.T) {
 
 func TestRequestInfo(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.GetRequestList("")
@@ -229,9 +230,9 @@ func TestRequestInfo(t *testing.T) {
 
 func TestRecepInfo(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, err := con.GetDetailRequest("020210816000002")
@@ -244,9 +245,9 @@ func TestRecepInfo(t *testing.T) {
 
 func TestGetResourceManagement(t *testing.T) {
 	con := Config{
-		CertFilePath: certFilePathV4,
-		KeyFilePath:  keyFilePathV4,
-		CAFilePath:   caFilePath,
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
 	data, html, err := con.GetResourceManagement()
