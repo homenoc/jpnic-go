@@ -1,4 +1,4 @@
-module github.com/homenoc/jpnic
+module github.com/homenoc/jpnic-go
 
 go 1.17
 
