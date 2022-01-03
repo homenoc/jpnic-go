@@ -27,6 +27,17 @@ func randomStr() (string, error) {
 	return result, nil
 }
 
+func readEUCJP(readerInput io.Reader) (string, []byte, error) {
+	// euc-jp => utf-8
+	reader := transform.NewReader(readerInput, japanese.EUCJP.NewDecoder())
+	strByte, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return "", nil, err
+
+	}
+	return string(strByte), strByte, nil
+}
+
 func readShiftJIS(readerInput io.Reader) (string, []byte, error) {
 	// shift-jis => utf-8
 	reader := transform.NewReader(readerInput, japanese.ShiftJIS.NewDecoder())

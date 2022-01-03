@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"golang.org/x/crypto/pkcs12"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strings"
 )
 
 type request struct {
@@ -129,6 +131,11 @@ func (r *request) get() (*http.Response, error) {
 	req.Header.Add("Sec-Fetch-Site", "same-origin")
 
 	resp, err := r.Client.Do(req)
+
+	body, _, _ := readEUCJP(resp.Body)
+	if strings.Contains(body, "ただいまメンテナンス中です") {
+		return resp, fmt.Errorf("現在、メンテナンス中のためデータ取得が出来ません。")
+	}
 
 	return resp, err
 }
