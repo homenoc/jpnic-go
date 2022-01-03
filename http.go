@@ -132,9 +132,15 @@ func (r *request) get() (*http.Response, error) {
 
 	resp, err := r.Client.Do(req)
 
-	body, _, _ := readEUCJP(resp.Body)
-	if strings.Contains(body, "ただいまメンテナンス中です") {
-		return resp, fmt.Errorf("現在、メンテナンス中のためデータ取得が出来ません。")
+	switch resp.StatusCode {
+	case 503:
+		body, _, _ := readEUCJP(resp.Body)
+		// メンテナンス判定
+		if strings.Contains(body, "ただいまメンテナンス中です") {
+			return resp, fmt.Errorf("[%d] 現在、メンテナンス中のためデータ取得が出来ません。", resp.StatusCode)
+		} else {
+			return resp, fmt.Errorf("Status Code: %d ", resp.StatusCode)
+		}
 	}
 
 	return resp, err
