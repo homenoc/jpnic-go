@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/crypto/pkcs12"
 	"io/ioutil"
 	"net/http"
@@ -23,10 +24,10 @@ type request struct {
 	ServerSessionID string
 }
 
-func (c *Config) initAccess() (*http.Client, error) {
+func (c *Config) initAccess(menuName string) (*http.Client, string, error) {
 	sessionID, err := randomStr()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	cookies := []*http.Cookie{
@@ -40,7 +41,7 @@ func (c *Config) initAccess() (*http.Client, error) {
 	urlObj, _ := url.Parse("https://iphostmaster.nic.ad.jp/")
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	jar.SetCookies(urlObj, cookies)
@@ -48,19 +49,19 @@ func (c *Config) initAccess() (*http.Client, error) {
 	// Load .p12 File
 	p12Bytes, err := ioutil.ReadFile(c.PfxFilePath)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// .p12 decode
 	key, cert, err := pkcs12.Decode(p12Bytes, c.PfxPass)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// Load CA
 	caCertBytes, err := ioutil.ReadFile(c.CAFilePath)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCertBytes)
@@ -78,7 +79,43 @@ func (c *Config) initAccess() (*http.Client, error) {
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport, Jar: jar}
 
-	return client, nil
+	// Login
+	r := request{
+		Client:      client,
+		URL:         baseURL + "/jpnic/certmemberlogin.do",
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+
+	result, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(result))
+	if err != nil {
+		return nil, "", err
+	}
+	resultContent, isExists := doc.Find("meta").Attr("content")
+	if !isExists {
+		return nil, "", fmt.Errorf("エラーが発生しました")
+	}
+	refreshURL := strings.Split(resultContent, "=")[1]
+
+	// menu
+	menuURL, err := getLink(client, refreshURL, menuName)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return client, menuURL, nil
 }
 
 func getJSessionID(cookies []*http.Cookie) string {

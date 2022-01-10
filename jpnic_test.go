@@ -8,12 +8,12 @@ import (
 	"testing"
 )
 
-var caFilePath = "/Users/y-yoneda/github/homenoc/jpnic/cert/rootcacert_r3.cer"
+var caFilePath = "/Users/y-yoneda/github/homenoc/jpnic-go/cert/rootcacert_r3.cer"
 
 //HomeNOC
 var pfxPass = "homenoc"
-var pfxFilePathV4 = "/Users/y-yoneda/github/homenoc/jpnic/cert/v4-openssl.p12"
-var pfxFilePathV6 = "/Users/y-yoneda/github/homenoc/jpnic/cert/v6-openssl.p12"
+var pfxFilePathV4 = "/Users/y-yoneda/github/homenoc/jpnic-go/cert/v4-openssl.p12"
+var pfxFilePathV6 = "/Users/y-yoneda/github/homenoc/jpnic-go/cert/v6-openssl.p12"
 
 // HomeNOC
 //var pfxFilePathV4 = "/home/yonedayuto/Documents/HomeNOC/cert/v4-cert.pem"
@@ -64,7 +64,7 @@ func TestSend(t *testing.T) {
 	t.Log("技術者連絡窓口2: " + result.Tech2JPNICHdl)
 }
 
-func TestGetIPv4(t *testing.T) {
+func TestSearchIPv4(t *testing.T) {
 	con := Config{
 		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
 		PfxFilePath: pfxFilePathV4,
@@ -72,31 +72,122 @@ func TestGetIPv4(t *testing.T) {
 		CAFilePath:  caFilePath,
 	}
 
-	data, err := con.GetAllIPv4(searchStr)
+	search := SearchIPv4{
+		IPAddress:      "",
+		SizeStart:      "",
+		SizeEnd:        "",
+		NetworkName:    "",
+		RegStart:       "",
+		RegEnd:         "",
+		ReturnStart:    "",
+		ReturnEnd:      "",
+		Org:            "",
+		Ryakusho:       "doornoc",
+		RecepNo:        "",
+		DeliNo:         "",
+		IsAllocate:     false,
+		IsAssignInfra:  false,
+		IsAssignUser:   false,
+		IsSubAllocate:  false,
+		IsHistoricalPI: false,
+		IsSpecialPI:    false,
+	}
+
+	data, jpnicHandles, err := con.SearchIPv4(false, true, search)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, tmp := range data {
 		t.Log(tmp)
+	}
 
+	for _, tmp := range jpnicHandles {
+		t.Log(tmp)
 	}
 }
 
-func TestGetIPv6(t *testing.T) {
+func TestSearchOurIPv4(t *testing.T) {
 	con := Config{
-		URL: "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
-		//CertFilePath: certFilePathV6,
-		//KeyFilePath:  keyFilePathV6,
-		CAFilePath: caFilePath,
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
 	}
 
-	data, err := con.GetAllIPv6(searchStr)
+	data, jpnicHandles, err := con.SearchIPv4(true, true, SearchIPv4{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, tmp := range data {
+		t.Log(tmp)
+	}
+
+	for _, tmp := range jpnicHandles {
+		t.Log(tmp)
+	}
+}
+
+func TestSearchIPv6(t *testing.T) {
+	con := Config{
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		PfxFilePath: pfxFilePathV6,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
+	}
+
+	search := SearchIPv6{
+		IPAddress:     "",
+		SizeStart:     "",
+		SizeEnd:       "",
+		NetworkName:   "",
+		RegStart:      "",
+		RegEnd:        "",
+		ReturnStart:   "",
+		ReturnEnd:     "",
+		Org:           "",
+		Ryakusho:      "doornoc",
+		RecepNo:       "",
+		DeliNo:        "",
+		IsAllocate:    false,
+		IsAssignInfra: false,
+		IsAssignUser:  false,
+		IsSubAllocate: false,
+	}
+
+	data, jpnicHandles, err := con.SearchIPv6(false, true, search)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tmp := range data {
+		t.Log(tmp)
+	}
+
+	for _, tmp := range jpnicHandles {
+		t.Log(tmp)
+	}
+}
+
+func TestSearchOurIPv6(t *testing.T) {
+	con := Config{
+		URL:         "https://iphostmaster.nic.ad.jp/jpnic/certmemberlogin.do",
+		PfxFilePath: pfxFilePathV6,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
+	}
+
+	data, jpnicHandles, err := con.SearchIPv6(true, true, SearchIPv6{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tmp := range data {
+		t.Log(tmp)
+	}
+
+	for _, tmp := range jpnicHandles {
 		t.Log(tmp)
 	}
 }
@@ -158,90 +249,90 @@ func TestGetJPNICHandle2(t *testing.T) {
 	t.Log(data)
 }
 
-func TestReturnIPv4(t *testing.T) {
-	con := Config{
-		PfxFilePath: pfxFilePathV4,
-		PfxPass:     pfxPass,
-		CAFilePath:  caFilePath,
-	}
-
-	data, err := con.ReturnIPv4("", "Y-NET", "2021/8/31", "noc@doornoc.net")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("受付番号: " + data)
-}
-
-func TestReturnIPv6(t *testing.T) {
-	con := Config{
-		PfxFilePath: pfxFilePathV6,
-		PfxPass:     pfxPass,
-		CAFilePath:  caFilePath,
-	}
-
-	// IPv6アドレスの表記はJPNIC側に合わせる必要があります。
-	data, err := con.ReturnIPv6([]string{"2407:a2c0:0003::/64"}, "noc@doornoc.net", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("受付番号: " + data)
-}
-
-func TestChangeUserInfo(t *testing.T) {
-	con := Config{
-		PfxFilePath: pfxFilePathV4,
-		PfxPass:     pfxPass,
-		CAFilePath:  caFilePath,
-	}
-
-	raw, err := ioutil.ReadFile("./user_detail.json")
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-
-	var input JPNICHandleInput
-
-	json.Unmarshal(raw, &input)
-
-	data, err := con.ChangeUserInfo(input)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("受付番号: " + data)
-}
-
-func TestRequestInfo(t *testing.T) {
-	con := Config{
-		PfxFilePath: pfxFilePathV4,
-		PfxPass:     pfxPass,
-		CAFilePath:  caFilePath,
-	}
-
-	data, err := con.GetRequestList("")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, tmp := range data {
-		t.Log(tmp)
-	}
-}
-
-func TestRecepInfo(t *testing.T) {
-	con := Config{
-		PfxFilePath: pfxFilePathV4,
-		PfxPass:     pfxPass,
-		CAFilePath:  caFilePath,
-	}
-
-	data, err := con.GetDetailRequest("020210816000002")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log(data)
-}
+//func TestReturnIPv4(t *testing.T) {
+//	con := Config{
+//		PfxFilePath: pfxFilePathV4,
+//		PfxPass:     pfxPass,
+//		CAFilePath:  caFilePath,
+//	}
+//
+//	data, err := con.ReturnIPv4("", "Y-NET", "2021/8/31", "noc@doornoc.net")
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	t.Log("受付番号: " + data)
+//}
+//
+//func TestReturnIPv6(t *testing.T) {
+//	con := Config{
+//		PfxFilePath: pfxFilePathV6,
+//		PfxPass:     pfxPass,
+//		CAFilePath:  caFilePath,
+//	}
+//
+//	// IPv6アドレスの表記はJPNIC側に合わせる必要があります。
+//	data, err := con.ReturnIPv6([]string{"2407:a2c0:0003::/64"}, "noc@doornoc.net", "")
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	t.Log("受付番号: " + data)
+//}
+//
+//func TestChangeUserInfo(t *testing.T) {
+//	con := Config{
+//		PfxFilePath: pfxFilePathV4,
+//		PfxPass:     pfxPass,
+//		CAFilePath:  caFilePath,
+//	}
+//
+//	raw, err := ioutil.ReadFile("./user_detail.json")
+//	if err != nil {
+//		fmt.Println(err.Error())
+//		os.Exit(1)
+//	}
+//
+//	var input JPNICHandleInput
+//
+//	json.Unmarshal(raw, &input)
+//
+//	data, err := con.ChangeUserInfo(input)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	t.Log("受付番号: " + data)
+//}
+//
+//func TestRequestInfo(t *testing.T) {
+//	con := Config{
+//		PfxFilePath: pfxFilePathV4,
+//		PfxPass:     pfxPass,
+//		CAFilePath:  caFilePath,
+//	}
+//
+//	data, err := con.GetRequestList("")
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	for _, tmp := range data {
+//		t.Log(tmp)
+//	}
+//}
+//
+//func TestRecepInfo(t *testing.T) {
+//	con := Config{
+//		PfxFilePath: pfxFilePathV4,
+//		PfxPass:     pfxPass,
+//		CAFilePath:  caFilePath,
+//	}
+//
+//	data, err := con.GetDetailRequest("020210816000002")
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	t.Log(data)
+//}
 
 func TestGetResourceManagement(t *testing.T) {
 	con := Config{

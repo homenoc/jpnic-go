@@ -142,32 +142,75 @@ type JPNICHandleDetail struct {
 	UpdateDate    string `json:"update_date"`
 }
 
+type SearchIPv4 struct {
+	IPAddress      string `json:"ip_address"`
+	SizeStart      string `json:"size_start"`
+	SizeEnd        string `json:"size_end"`
+	NetworkName    string `json:"network_name"`
+	RegStart       string `json:"reg_start"`
+	RegEnd         string `json:"reg_end"`
+	ReturnStart    string `json:"return_start"`
+	ReturnEnd      string `json:"return_end"`
+	Org            string `json:"org"`
+	Ryakusho       string `json:"ryakusho"`
+	RecepNo        string `json:"recep_no"`
+	DeliNo         string `json:"deli_no"`
+	IsPA           bool   `json:"is_pa"`            // 割り振り
+	IsAllocate     bool   `json:"is_allocate"`      // 割り振り
+	IsAssignInfra  bool   `json:"is_assign_infra"`  //インフラ割当
+	IsAssignUser   bool   `json:"is_assign_user"`   //ユーザ割当
+	IsSubAllocate  bool   `json:"is_sub_allocate"`  //SUBA
+	IsHistoricalPI bool   `json:"is_historical_pi"` //歴史的PI
+	IsSpecialPI    bool   `json:"is_special_pi"`    //特殊用途PI
+}
+
 type InfoIPv4 struct {
-	IPAddress   string `json:"ip_address"`
-	DetailLink  string `json:"detail_link"`
-	Size        string `json:"size"`
-	NetworkName string `json:"network_name"`
-	AssignDate  string `json:"assign_date"`
-	ReturnDate  string `json:"return_date"`
-	OrgName     string `json:"org_name"`
-	Ryakusho    string `json:"ryakusho"`
-	RecepNo     string `json:"recep_no"`
-	DeliNo      string `json:"deli_no"`
-	Type        string `json:"type"`
-	KindID      string `json:"kind_id"`
+	IPAddress   string     `json:"ip_address"`
+	DetailLink  string     `json:"detail_link"`
+	Size        string     `json:"size"`
+	NetworkName string     `json:"network_name"`
+	AssignDate  string     `json:"assign_date"`
+	ReturnDate  string     `json:"return_date"`
+	OrgName     string     `json:"org_name"`
+	Ryakusho    string     `json:"ryakusho"`
+	RecepNo     string     `json:"recep_no"`
+	DeliNo      string     `json:"deli_no"`
+	Type        string     `json:"type"`
+	KindID      string     `json:"kind_id"`
+	InfoDetail  InfoDetail `json:"info_detail"`
+}
+
+type SearchIPv6 struct {
+	IPAddress     string `json:"ip_address"`
+	SizeStart     string `json:"size_start"`
+	SizeEnd       string `json:"size_end"`
+	NetworkName   string `json:"network_name"`
+	RegStart      string `json:"reg_start"`
+	RegEnd        string `json:"reg_end"`
+	ReturnStart   string `json:"return_start"`
+	ReturnEnd     string `json:"return_end"`
+	Org           string `json:"org"`
+	Ryakusho      string `json:"ryakusho"`
+	RecepNo       string `json:"recep_no"`
+	DeliNo        string `json:"deli_no"`
+	IsAllocate    bool   `json:"is_allocate"`     // 割振
+	IsAssignInfra bool   `json:"is_assign_infra"` //インフラ割当
+	IsAssignUser  bool   `json:"is_assign_user"`  //ユーザ割当
+	IsSubAllocate bool   `json:"is_sub_allocate"` //再割当
 }
 
 type InfoIPv6 struct {
-	IPAddress   string `json:"ip_address"`
-	DetailLink  string `json:"detail_link"`
-	NetworkName string `json:"network_name"`
-	AssignDate  string `json:"assign_date"`
-	ReturnDate  string `json:"return_date"`
-	OrgName     string `json:"org_name"`
-	Ryakusho    string `json:"ryakusho"`
-	RecepNo     string `json:"recep_no"`
-	DeliNo      string `json:"deli_no"`
-	KindID      string `json:"kind_id"`
+	IPAddress   string     `json:"ip_address"`
+	DetailLink  string     `json:"detail_link"`
+	NetworkName string     `json:"network_name"`
+	AssignDate  string     `json:"assign_date"`
+	ReturnDate  string     `json:"return_date"`
+	OrgName     string     `json:"org_name"`
+	Ryakusho    string     `json:"ryakusho"`
+	RecepNo     string     `json:"recep_no"`
+	DeliNo      string     `json:"deli_no"`
+	KindID      string     `json:"kind_id"`
+	InfoDetail  InfoDetail `json:"info_detail"`
 }
 
 type RequestInfo struct {

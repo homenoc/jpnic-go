@@ -61,10 +61,10 @@ func toShiftJIS(str string) (string, []byte, error) {
 	return string(strByte), strByte, nil
 }
 
-func getLink(client *http.Client, str string) (string, error) {
+func getLink(client *http.Client, menuURL, str string) (string, error) {
 	r := request{
 		Client:      client,
-		URL:         "https://iphostmaster.nic.ad.jp/jpnic/membermenu.do",
+		URL:         baseURL + "/jpnic/" + menuURL,
 		UserAgent:   userAgent,
 		ContentType: contentType,
 	}
@@ -111,4 +111,12 @@ func getLink(client *http.Client, str string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func getSearchBoolean(isFilter bool) string {
+	if isFilter {
+		return "on"
+	} else {
+		return "off"
+	}
 }
