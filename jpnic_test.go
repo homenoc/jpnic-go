@@ -302,22 +302,22 @@ func TestChangeUserInfo(t *testing.T) {
 	t.Log("受付番号: " + data)
 }
 
-//func TestRequestInfo(t *testing.T) {
-//	con := Config{
-//		PfxFilePath: pfxFilePathV4,
-//		PfxPass:     pfxPass,
-//		CAFilePath:  caFilePath,
-//	}
-//
-//	data, err := con.GetRequestList("")
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	for _, tmp := range data {
-//		t.Log(tmp)
-//	}
-//}
+func TestRequestInfo(t *testing.T) {
+	con := Config{
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
+	}
+
+	data, err := con.GetRequestList("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tmp := range data {
+		t.Log(tmp)
+	}
+}
 
 //func TestRecepInfo(t *testing.T) {
 //	con := Config{

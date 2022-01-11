@@ -1472,97 +1472,111 @@ func (c *Config) ChangeUserInfo(input JPNICHandleInput) (string, error) {
 	return recepNo, nil
 }
 
-//func (c *Config) GetRequestList(searchStr string) ([]RequestInfo, error) {
-//	client, err := c.initAccess()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	r := request{
-//		Client:      client,
-//		URL:         baseURL + "/jpnic/certmemberlogin.do",
-//		Body:        "",
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err := r.get()
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer resp.Body.Close()
-//
-//	str := "destdisp=D10009&startRecepNo=" + searchStr + "&endRecepNo=&deliNo=&aplyKind=&aplyClass=&resceAdmSnm=&aplyDateS=&aplyDateE=&completDateS=&completDateE=&statusId=&pswdResceNewConfirm=%81%40%8C%9F%8D%F5%81%40"
-//	// utf-8 => shift-jis
-//	reqBody, _, err := toShiftJIS(str)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	r = request{
-//		Client:      client,
-//		URL:         baseURL + "/jpnic/applysearchlink.do",
-//		Body:        reqBody,
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err = r.post()
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer resp.Body.Close()
-//
-//	body, _, err := readShiftJIS(resp.Body)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	count := 0
-//	var infos []RequestInfo
-//
-//	doc.Find("table").Each(func(_ int, tableHtml *goquery.Selection) {
-//		tableHtml.Find("tr").Each(func(_ int, rowHtml *goquery.Selection) {
-//			var info RequestInfo
-//			rowHtml.Find("td").Each(func(index int, tableCell *goquery.Selection) {
-//				dataStr := strings.TrimSpace(tableCell.Text())
-//
-//				switch index {
-//				case 0:
-//					info.RecepNo = dataStr
-//				case 1:
-//					info.DeliNo = dataStr
-//				case 2:
-//					info.ApplyKind = dataStr
-//				case 3:
-//					info.ApplyClass = dataStr
-//				case 4:
-//					info.Applicant = dataStr
-//				case 5:
-//					info.ApplyDate = dataStr
-//				case 6:
-//					info.CompleteDate = dataStr
-//				case 7:
-//					info.Status = dataStr
-//				}
-//				count++
-//			})
-//			if count == 8 {
-//				infos = append(infos, info)
-//			}
-//			count = 0
-//		})
-//	})
-//
-//	infos = infos[1:]
-//
-//	return infos, nil
-//}
+func (c *Config) GetRequestList(searchStr string) ([]RequestInfo, error) {
+	client, menuURL, err := c.initAccess("申請一覧")
+	if err != nil {
+		return nil, err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         baseURL + "/jpnic/" + menuURL,
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return nil, err
+	}
+
+	resBody, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(resBody))
+	if err != nil {
+		return nil, err
+	}
+	var actionURL string
+	var destDisp string
+
+	// actionのURLを取得
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		actionURL, _ = formHtml.Attr("action")
+		doc.Find("input").Each(func(index int, s *goquery.Selection) {
+			name, nameExists := s.Attr("name")
+			value, valueExists := s.Attr("value")
+			if nameExists && valueExists && name == "destdisp" {
+				destDisp = value
+			}
+		})
+	})
+
+	str := "destdisp=" + destDisp + "&startRecepNo=" + searchStr + "&endRecepNo=&deliNo=&aplyKind=&aplyClass=&resceAdmSnm=&aplyDateS=&aplyDateE=&completDateS=&completDateE=&statusId=&pswdResceNewConfirm=%81%40%8C%9F%8D%F5%81%40"
+	// utf-8 => shift-jis
+	reqBody, _, err := toShiftJIS(str)
+	if err != nil {
+		return nil, err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         baseURL + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return nil, err
+	}
+
+	resBody, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(resBody))
+	if err != nil {
+		return nil, err
+	}
+
+	//count := 0
+	var infos []RequestInfo
+	var info RequestInfo
+
+	doc.Find("table").Children().Find("td").Each(func(_ int, tableHtml *goquery.Selection) {
+		dataStr := strings.TrimSpace(tableHtml.Text())
+		switch tableHtml.Index() {
+		case 0:
+			info.RecepNo = dataStr
+		case 1:
+			info.DeliNo = dataStr
+		case 2:
+			info.ApplyKind = dataStr
+		case 3:
+			info.ApplyClass = dataStr
+		case 4:
+			info.Applicant = dataStr
+		case 5:
+			info.ApplyDate = dataStr
+		case 6:
+			info.CompleteDate = dataStr
+		case 7:
+			info.Status = dataStr
+			infos = append(infos, info)
+			info = RequestInfo{}
+		}
+	})
+
+	infos = infos[1:]
+
+	return infos, nil
+}
 
 //func (c *Config) GetDetailRequest(recepNo string) (string, error) {
 //	client, menuURL, err := c.initAccess("資源管理者情報")
