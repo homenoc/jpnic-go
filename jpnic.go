@@ -1269,232 +1269,209 @@ func (c *Config) GetJPNICHandle(handle string) (JPNICHandleDetail, error) {
 //
 //	return recepNo, nil
 //}
-//
-//func (c *Config) ChangeUserInfo(input JPNICHandleInput) (string, error) {
-//	client, err := c.initAccess()
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	r := request{
-//		Client:      client,
-//		URL:         baseURL + "/jpnic/certmemberlogin.do",
-//		Body:        "",
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err := r.get()
-//	if err != nil {
-//		return "", err
-//	}
-//	defer resp.Body.Close()
-//
-//	r = request{
-//		Client:      client,
-//		URL:         baseURL + "/jpnic/disppocregist.do?aplyid=501",
-//		Body:        "",
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err = r.get()
-//	if err != nil {
-//		return "", err
-//	}
-//	defer resp.Body.Close()
-//
-//	body, _, err := readShiftJIS(resp.Body)
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	var actionURL string
-//	var token, destDisp, aplyId string
-//
-//	// actionのURLを取得
-//	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
-//		action, _ := formHtml.Attr("action")
-//		if strings.Contains(action, "regist.do") {
-//			actionURL = action
-//			doc.Find("input").Each(func(index int, s *goquery.Selection) {
-//				name, nameExists := s.Attr("name")
-//				value, valueExists := s.Attr("value")
-//				if nameExists && valueExists {
-//					switch name {
-//					case "org.apache.struts.taglib.html.TOKEN":
-//						token = value
-//					case "destdisp":
-//						destDisp = value
-//					case "aplyid":
-//						aplyId = value
-//					}
-//				}
-//			})
-//		}
-//	})
-//
-//	if actionURL == "" {
-//		return "", fmt.Errorf("action URLの取得失敗")
-//	}
-//
-//	// 初期値はJPNIC Handleで指定していた場合を想定
-//	kind := "person"
-//	if !input.IsJPNICHandle {
-//		// Group Handleで指定していた場合
-//		kind = "group"
-//	}
-//
-//	str := "org.apache.struts.taglib.html.TOKEN=" + token + "&destdisp=" + destDisp + "&aplyid=" + aplyId +
-//		"&kind=" + kind + "&jpnic_hdl=" + input.JPNICHandle +
-//		"&name_jp=" + input.Name + "&name=" + input.NameEn + "&email=" + input.Email +
-//		"&org_nm_jp=" + input.Org + "&org_nm=" + input.OrgEn +
-//		"&zipcode=" + input.ZipCode + "&addr_jp=" + input.Address + "&addr=" + input.AddressEn +
-//		"&division_jp=" + input.Division + "&division=" + input.DivisionEn +
-//		"&title_jp=" + input.Title + "&title=" + input.TitleEn +
-//		"&phone=" + input.Tel + "&fax=" + input.Fax + "&ntfy_mail=" + input.NotifyMail +
-//		"&aply_from_addr=" + input.ApplyMail + "&aply_from_addr_confirm=" + input.ApplyMail + "&action=%90%5C%90%BF"
-//
-//	// utf-8 => shift-jis
-//	reqBody, _, err := toShiftJIS(str)
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	r = request{
-//		Client:      client,
-//		URL:         baseURL + actionURL,
-//		Body:        reqBody,
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err = r.post()
-//	if err != nil {
-//		return "", err
-//	}
-//	defer resp.Body.Close()
-//
-//	// utf-8 => shift-jis
-//	body, _, err = readShiftJIS(resp.Body)
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	// actionのURLを取得
-//	actionURL = ""
-//	token = ""
-//	var prevDispId string
-//	aplyId = ""
-//	destDisp = ""
-//
-//	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
-//		action, _ := formHtml.Attr("action")
-//		if strings.Contains(action, "apply") {
-//			actionURL = action
-//			doc.Find("input").Each(func(index int, s *goquery.Selection) {
-//				name, nameExists := s.Attr("name")
-//				value, valueExists := s.Attr("value")
-//				if nameExists && valueExists {
-//					switch name {
-//					case "org.apache.struts.taglib.html.TOKEN":
-//						token = value
-//					case "prevDispId":
-//						prevDispId = value
-//					case "aplyid":
-//						aplyId = value
-//					case "destdisp":
-//						destDisp = value
-//					}
-//				}
-//			})
-//		}
-//	})
-//
-//	if actionURL == "" {
-//		return "", fmt.Errorf("action URLの取得失敗")
-//	}
-//
-//	if strings.Contains(body, "IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。") {
-//		return "", fmt.Errorf("IPネットワークアドレスが返却可能な割り当てアドレスではないか、ネットワーク名が正しくありません。")
-//	}
-//
-//	if strings.Contains(body, "JPNICハンドルを正しく入力してください") {
-//		return "", fmt.Errorf("正しいJPNICハンドルを入力してください")
-//	}
-//
-//	if !strings.Contains(body, "上記の申請内容でよろしければ、「確認」ボタンを押してください。") {
-//		return "", fmt.Errorf("何かしらのエラーが発生しました。")
-//	}
-//
-//	str = "org.apache.struts.taglib.html.TOKEN=" + token + "&prevDispId=" + prevDispId + "&aplyid=" + aplyId +
-//		"&destdisp=" + destDisp + "&inputconf=%8Am%94F"
-//	// utf-8 => shift-jis
-//	reqBody, _, err = toShiftJIS(str)
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	r = request{
-//		Client:      client,
-//		URL:         baseURL + actionURL,
-//		Body:        reqBody,
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err = r.post()
-//	if err != nil {
-//		return "", err
-//	}
-//	defer resp.Body.Close()
-//
-//	// utf-8 => shift-jis
-//	body, _, err = readShiftJIS(resp.Body)
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	doc, err = goquery.NewDocumentFromReader(strings.NewReader(body))
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	var recepNo string
-//
-//	// actionのURLを取得
-//	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
-//		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
-//			rowHtml1.Find("td").Each(func(_ int, tableCell1 *goquery.Selection) {
-//				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
-//					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
-//						ok := false
-//						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
-//							if index == 0 && strings.Contains(tableCell2.Text(), "受付番号") {
-//								ok = true
-//							} else if index == 1 && ok {
-//								recepNo = tableCell2.Text()
-//							}
-//						})
-//					})
-//				})
-//			})
-//		})
-//	})
-//
-//	return recepNo, nil
-//}
-//
+
+func (c *Config) ChangeUserInfo(input JPNICHandleInput) (string, error) {
+	client, menuURL, err := c.initAccess("担当グループ（担当者）情報登録・変更")
+	if err != nil {
+		return "", err
+	}
+
+	r := request{
+		Client:      client,
+		URL:         baseURL + "/jpnic/" + menuURL,
+		Body:        "",
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return "", err
+	}
+
+	resBody, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(resBody))
+	if err != nil {
+		return "", err
+	}
+
+	var actionURL string
+	var token, destDisp, aplyId string
+
+	// actionのURLを取得
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		actionVal, _ := formHtml.Attr("action")
+		if !strings.Contains(actionVal, "regist.do") {
+			return
+		}
+		actionURL = actionVal
+		doc.Find("input").Each(func(index int, s *goquery.Selection) {
+			name, nameExists := s.Attr("name")
+			value, valueExists := s.Attr("value")
+			if nameExists && valueExists {
+				switch name {
+				case "org.apache.struts.taglib.html.TOKEN":
+					token = value
+				case "destdisp":
+					destDisp = value
+				case "aplyid":
+					aplyId = value
+				}
+			}
+		})
+	})
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	// 初期値はJPNIC Handleで指定していた場合を想定
+	kind := "person"
+	if !input.IsJPNICHandle {
+		// Group Handleで指定していた場合
+		kind = "group"
+	}
+
+	str := "org.apache.struts.taglib.html.TOKEN=" + token + "&destdisp=" + destDisp + "&aplyid=" + aplyId +
+		"&kind=" + kind + "&jpnic_hdl=" + input.JPNICHandle +
+		"&name_jp=" + input.Name + "&name=" + input.NameEn + "&email=" + input.Email +
+		"&org_nm_jp=" + input.Org + "&org_nm=" + input.OrgEn +
+		"&zipcode=" + input.ZipCode + "&addr_jp=" + input.Address + "&addr=" + input.AddressEn +
+		"&division_jp=" + input.Division + "&division=" + input.DivisionEn +
+		"&title_jp=" + input.Title + "&title=" + input.TitleEn +
+		"&phone=" + input.Tel + "&fax=" + input.Fax + "&ntfy_mail=" + input.NotifyMail +
+		"&aply_from_addr=" + input.ApplyMail + "&aply_from_addr_confirm=" + input.ApplyMail + "&action=%90%5C%90%BF"
+
+	// utf-8 => shift-jis
+	reqBody, _, err := toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         baseURL + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+
+	// utf-8 => shift-jis
+	resBody, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(resBody))
+	if err != nil {
+		return "", err
+	}
+
+	// actionのURLを取得
+	actionURL = ""
+	token = ""
+	var prevDispId string
+	aplyId = ""
+	destDisp = ""
+
+	doc.Find("form").Each(func(_ int, formHtml *goquery.Selection) {
+		actionVal, _ := formHtml.Attr("action")
+		if !strings.Contains(actionVal, "apply") {
+			return
+		}
+		actionURL = actionVal
+		doc.Find("input").Each(func(index int, s *goquery.Selection) {
+			name, nameExists := s.Attr("name")
+			value, valueExists := s.Attr("value")
+			if nameExists && valueExists {
+				switch name {
+				case "org.apache.struts.taglib.html.TOKEN":
+					token = value
+				case "prevDispId":
+					prevDispId = value
+				case "aplyid":
+					aplyId = value
+				case "destdisp":
+					destDisp = value
+				}
+			}
+		})
+	})
+
+	if actionURL == "" {
+		return "", fmt.Errorf("action URLの取得失敗")
+	}
+
+	if !strings.Contains(resBody, "上記の申請内容でよろしければ、「確認」ボタンを押してください。") {
+		// エラー表示
+		var dataStr string
+		doc.Find("font").Each(func(_ int, formHtml *goquery.Selection) {
+			colorVal, _ := formHtml.Attr("color")
+			if colorVal == "red" {
+				dataStr = strings.TrimSpace(formHtml.Text())
+			}
+		})
+		if dataStr == "" {
+			dataStr = "何かしらのエラーが発生しました"
+		}
+		return "", fmt.Errorf("%s", dataStr)
+
+	}
+
+	str = "org.apache.struts.taglib.html.TOKEN=" + token + "&prevDispId=" + prevDispId + "&aplyid=" + aplyId +
+		"&destdisp=" + destDisp + "&inputconf=%8Am%94F"
+	// utf-8 => shift-jis
+	reqBody, _, err = toShiftJIS(str)
+	if err != nil {
+		return "", err
+	}
+
+	r = request{
+		Client:      client,
+		URL:         baseURL + actionURL,
+		Body:        reqBody,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err = r.post()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// utf-8 => shift-jis
+	resBody, _, err = readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(resBody))
+	if err != nil {
+		return "", err
+	}
+
+	var recepNo string
+
+	// actionのURLを取得
+	doc.Find("table").Children().Find("table").Children().Find("td").Each(func(_ int, tableHtml1 *goquery.Selection) {
+		if strings.Contains(tableHtml1.Prev().Text(), "受付番号") {
+			recepNo = tableHtml1.Text()
+		}
+	})
+
+	return recepNo, nil
+}
+
 //func (c *Config) GetRequestList(searchStr string) ([]RequestInfo, error) {
 //	client, err := c.initAccess()
 //	if err != nil {

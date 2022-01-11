@@ -278,30 +278,30 @@ func TestGetJPNICHandle2(t *testing.T) {
 //	t.Log("受付番号: " + data)
 //}
 //
-//func TestChangeUserInfo(t *testing.T) {
-//	con := Config{
-//		PfxFilePath: pfxFilePathV4,
-//		PfxPass:     pfxPass,
-//		CAFilePath:  caFilePath,
-//	}
-//
-//	raw, err := ioutil.ReadFile("./user_detail.json")
-//	if err != nil {
-//		fmt.Println(err.Error())
-//		os.Exit(1)
-//	}
-//
-//	var input JPNICHandleInput
-//
-//	json.Unmarshal(raw, &input)
-//
-//	data, err := con.ChangeUserInfo(input)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	t.Log("受付番号: " + data)
-//}
-//
+func TestChangeUserInfo(t *testing.T) {
+	con := Config{
+		PfxFilePath: pfxFilePathV4,
+		PfxPass:     pfxPass,
+		CAFilePath:  caFilePath,
+	}
+
+	raw, err := ioutil.ReadFile("./user_detail.json")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	var input JPNICHandleInput
+
+	json.Unmarshal(raw, &input)
+
+	data, err := con.ChangeUserInfo(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("受付番号: " + data)
+}
+
 //func TestRequestInfo(t *testing.T) {
 //	con := Config{
 //		PfxFilePath: pfxFilePathV4,
@@ -318,7 +318,7 @@ func TestGetJPNICHandle2(t *testing.T) {
 //		t.Log(tmp)
 //	}
 //}
-//
+
 //func TestRecepInfo(t *testing.T) {
 //	con := Config{
 //		PfxFilePath: pfxFilePathV4,
