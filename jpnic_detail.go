@@ -132,16 +132,16 @@ func getJPNICHandle(client *http.Client, handleURL string) (JPNICHandleDetail, e
 			info.IsJPNICHandle = false
 			info.JPNICHandle = dataStr
 		case "グループ名":
-			info.Org = dataStr
+			info.Name = dataStr
 		case "Group Name":
-			info.OrgEn = dataStr
+			info.NameEn = dataStr
 		case "JPNICハンドル":
 			info.IsJPNICHandle = true
 			info.JPNICHandle = dataStr
 		case "氏名":
-			info.Org = dataStr
+			info.Name = dataStr
 		case "Last, First":
-			info.OrgEn = dataStr
+			info.NameEn = dataStr
 		case "電子メール":
 			info.Email = dataStr
 		case "電子メイル": // JPNIC側の表記ゆれのため
