@@ -168,6 +168,9 @@ func (r *request) get() (*http.Response, error) {
 	req.Header.Add("Sec-Fetch-Site", "same-origin")
 
 	resp, err := r.Client.Do(req)
+	if err != nil {
+		return resp, err
+	}
 
 	switch resp.StatusCode {
 	case 503:

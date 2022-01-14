@@ -143,25 +143,28 @@ type JPNICHandleDetail struct {
 }
 
 type SearchIPv4 struct {
-	IPAddress      string `json:"ip_address"`
-	SizeStart      string `json:"size_start"`
-	SizeEnd        string `json:"size_end"`
-	NetworkName    string `json:"network_name"`
-	RegStart       string `json:"reg_start"`
-	RegEnd         string `json:"reg_end"`
-	ReturnStart    string `json:"return_start"`
-	ReturnEnd      string `json:"return_end"`
-	Org            string `json:"org"`
-	Ryakusho       string `json:"ryakusho"`
-	RecepNo        string `json:"recep_no"`
-	DeliNo         string `json:"deli_no"`
-	IsPA           bool   `json:"is_pa"`            // 割り振り
-	IsAllocate     bool   `json:"is_allocate"`      // 割り振り
-	IsAssignInfra  bool   `json:"is_assign_infra"`  //インフラ割当
-	IsAssignUser   bool   `json:"is_assign_user"`   //ユーザ割当
-	IsSubAllocate  bool   `json:"is_sub_allocate"`  //SUBA
-	IsHistoricalPI bool   `json:"is_historical_pi"` //歴史的PI
-	IsSpecialPI    bool   `json:"is_special_pi"`    //特殊用途PI
+	Myself         bool     `json:"myself"`    // 自ASの情報を取得
+	IsDetail       bool     `json:"is_detail"` // 詳細情報の取得
+	Option1        []string `json:"option_1"`  // Option1
+	IPAddress      string   `json:"ip_address"`
+	SizeStart      string   `json:"size_start"`
+	SizeEnd        string   `json:"size_end"`
+	NetworkName    string   `json:"network_name"`
+	RegStart       string   `json:"reg_start"`
+	RegEnd         string   `json:"reg_end"`
+	ReturnStart    string   `json:"return_start"`
+	ReturnEnd      string   `json:"return_end"`
+	Org            string   `json:"org"`
+	Ryakusho       string   `json:"ryakusho"`
+	RecepNo        string   `json:"recep_no"`
+	DeliNo         string   `json:"deli_no"`
+	IsPA           bool     `json:"is_pa"`            // 割り振り
+	IsAllocate     bool     `json:"is_allocate"`      // 割り振り
+	IsAssignInfra  bool     `json:"is_assign_infra"`  //インフラ割当
+	IsAssignUser   bool     `json:"is_assign_user"`   //ユーザ割当
+	IsSubAllocate  bool     `json:"is_sub_allocate"`  //SUBA
+	IsHistoricalPI bool     `json:"is_historical_pi"` //歴史的PI
+	IsSpecialPI    bool     `json:"is_special_pi"`    //特殊用途PI
 }
 
 type InfoIPv4 struct {
@@ -181,22 +184,25 @@ type InfoIPv4 struct {
 }
 
 type SearchIPv6 struct {
-	IPAddress     string `json:"ip_address"`
-	SizeStart     string `json:"size_start"`
-	SizeEnd       string `json:"size_end"`
-	NetworkName   string `json:"network_name"`
-	RegStart      string `json:"reg_start"`
-	RegEnd        string `json:"reg_end"`
-	ReturnStart   string `json:"return_start"`
-	ReturnEnd     string `json:"return_end"`
-	Org           string `json:"org"`
-	Ryakusho      string `json:"ryakusho"`
-	RecepNo       string `json:"recep_no"`
-	DeliNo        string `json:"deli_no"`
-	IsAllocate    bool   `json:"is_allocate"`     // 割振
-	IsAssignInfra bool   `json:"is_assign_infra"` //インフラ割当
-	IsAssignUser  bool   `json:"is_assign_user"`  //ユーザ割当
-	IsSubAllocate bool   `json:"is_sub_allocate"` //再割当
+	Myself        bool     `json:"myself"`    // 自ASの情報を取得
+	IsDetail      bool     `json:"is_detail"` // 詳細情報の取得
+	Option1       []string `json:"option_1"`  // Option1
+	IPAddress     string   `json:"ip_address"`
+	SizeStart     string   `json:"size_start"`
+	SizeEnd       string   `json:"size_end"`
+	NetworkName   string   `json:"network_name"`
+	RegStart      string   `json:"reg_start"`
+	RegEnd        string   `json:"reg_end"`
+	ReturnStart   string   `json:"return_start"`
+	ReturnEnd     string   `json:"return_end"`
+	Org           string   `json:"org"`
+	Ryakusho      string   `json:"ryakusho"`
+	RecepNo       string   `json:"recep_no"`
+	DeliNo        string   `json:"deli_no"`
+	IsAllocate    bool     `json:"is_allocate"`     // 割振
+	IsAssignInfra bool     `json:"is_assign_infra"` //インフラ割当
+	IsAssignUser  bool     `json:"is_assign_user"`  //ユーザ割当
+	IsSubAllocate bool     `json:"is_sub_allocate"` //再割当
 }
 
 type InfoIPv6 struct {

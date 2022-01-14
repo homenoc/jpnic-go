@@ -2,6 +2,7 @@ package jpnic
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -19,6 +20,7 @@ func getInfoDetail(client *http.Client, userURL string) (InfoDetail, error) {
 
 	resp, err := r.get()
 	if err != nil {
+		log.Println(err)
 		return info, err
 	}
 
@@ -174,4 +176,40 @@ func getJPNICHandle(client *http.Client, handleURL string) (JPNICHandleDetail, e
 	})
 
 	return info, err
+}
+
+func getRecepDetail(client *http.Client, recepURL string) (string, error) {
+	r := request{
+		Client:      client,
+		URL:         baseURL + recepURL,
+		UserAgent:   userAgent,
+		ContentType: contentType,
+	}
+
+	resp, err := r.get()
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _, err := readShiftJIS(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	var info string
+
+	doc.Find("table").Children().Find("table").Children().Find("td").Each(func(index int, tableHtml1 *goquery.Selection) {
+		dataStr := strings.TrimSpace(tableHtml1.Text())
+		if dataStr != "" {
+			info = "\n" + dataStr
+		}
+	})
+
+	return info, nil
 }

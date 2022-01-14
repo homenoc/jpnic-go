@@ -73,6 +73,8 @@ func TestSearchIPv4(t *testing.T) {
 	}
 
 	search := SearchIPv4{
+		Myself:         false,
+		IsDetail:       false,
 		IPAddress:      "",
 		SizeStart:      "",
 		SizeEnd:        "",
@@ -93,7 +95,7 @@ func TestSearchIPv4(t *testing.T) {
 		IsSpecialPI:    false,
 	}
 
-	data, jpnicHandles, err := con.SearchIPv4(false, true, search)
+	data, jpnicHandles, err := con.SearchIPv4(search)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +117,11 @@ func TestSearchOurIPv4(t *testing.T) {
 		CAFilePath:  caFilePath,
 	}
 
-	data, jpnicHandles, err := con.SearchIPv4(true, true, SearchIPv4{})
+	data, jpnicHandles, err := con.SearchIPv4(SearchIPv4{
+		Myself:   true,
+		IsDetail: true,
+		RecepNo:  "020160121000261",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,6 +133,7 @@ func TestSearchOurIPv4(t *testing.T) {
 	for _, tmp := range jpnicHandles {
 		t.Log(tmp)
 	}
+	t.Log(len(data))
 }
 
 func TestSearchIPv6(t *testing.T) {
@@ -138,6 +145,8 @@ func TestSearchIPv6(t *testing.T) {
 	}
 
 	search := SearchIPv6{
+		Myself:        false,
+		IsDetail:      true,
 		IPAddress:     "",
 		SizeStart:     "",
 		SizeEnd:       "",
@@ -156,7 +165,7 @@ func TestSearchIPv6(t *testing.T) {
 		IsSubAllocate: false,
 	}
 
-	data, jpnicHandles, err := con.SearchIPv6(false, true, search)
+	data, jpnicHandles, err := con.SearchIPv6(search)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +187,7 @@ func TestSearchOurIPv6(t *testing.T) {
 		CAFilePath:  caFilePath,
 	}
 
-	data, jpnicHandles, err := con.SearchIPv6(true, true, SearchIPv6{})
+	data, jpnicHandles, err := con.SearchIPv6(SearchIPv6{Myself: true, IsDetail: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,21 +327,6 @@ func TestRequestInfo(t *testing.T) {
 		t.Log(tmp)
 	}
 }
-
-//func TestRecepInfo(t *testing.T) {
-//	con := Config{
-//		PfxFilePath: pfxFilePathV4,
-//		PfxPass:     pfxPass,
-//		CAFilePath:  caFilePath,
-//	}
-//
-//	data, err := con.GetDetailRequest("020210816000002")
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	t.Log(data)
-//}
 
 func TestGetResourceManagement(t *testing.T) {
 	con := Config{

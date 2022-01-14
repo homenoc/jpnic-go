@@ -160,7 +160,7 @@ func (c *Config) Send(input WebTransaction) Result {
 	return result
 }
 
-func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv4, []JPNICHandleDetail, error) {
+func (c *Config) SearchIPv4(search SearchIPv4) ([]InfoIPv4, []JPNICHandleDetail, error) {
 	client, menuURL, err := c.initAccess("登録情報検索(IPv4)")
 	if err != nil {
 		return nil, nil, err
@@ -200,7 +200,7 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 
 	var requestStr string
 
-	if myself {
+	if search.Myself {
 		// 自身のAS
 		var resceAdmSnm string
 		doc.Find("form").Find("ul").Find("table").Children().Find("table").Children().Find("input").Each(func(index int, s *goquery.Selection) {
@@ -214,19 +214,26 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 			return nil, nil, fmt.Errorf("資源管理者略称が見つかりませんでした")
 		}
 		requestStr = "destdisp=" + submitID
-		requestStr += "&ipaddr=" + ""
-		requestStr += "&sizeS=" + ""
-		requestStr += "&sizeE=" + ""
-		requestStr += "&netwrkName=" + ""
-		requestStr += "&regDateS=" + ""
-		requestStr += "&regDateE=" + ""
-		requestStr += "&rtnDateS=" + ""
-		requestStr += "&rtnDateE=" + ""
-		requestStr += "&organizationName=" + ""
+		requestStr += "&ipaddr=" + search.IPAddress
+		requestStr += "&sizeS=" + search.SizeStart
+		requestStr += "&sizeE=" + search.SizeEnd
+		requestStr += "&netwrkName=" + search.NetworkName
+		requestStr += "&regDateS=" + search.RegStart
+		requestStr += "&regDateE=" + search.RegEnd
+		requestStr += "&rtnDateS=" + search.ReturnStart
+		requestStr += "&rtnDateE=" + search.ReturnEnd
+		requestStr += "&organizationName=" + search.Org
 		requestStr += "&resceAdmSnm=" + resceAdmSnm
-		requestStr += "&recepNo=" + ""
-		requestStr += "&deliNo=" + ""
-		requestStr += "&action=%81%40%8C%9F%8D%F5%81%40"
+		requestStr += "&recepNo=" + search.RecepNo
+		requestStr += "&deliNo=" + search.DeliNo
+		requestStr += "&ipaddrKindPa=" + getSearchBoolean(search.IsPA)
+		requestStr += "&regKindAllo=" + getSearchBoolean(search.IsAllocate)
+		requestStr += "&regKindEvent=" + getSearchBoolean(search.IsAssignInfra)
+		requestStr += "&regKindUser=" + getSearchBoolean(search.IsAssignUser)
+		requestStr += "&regKindSubA=" + getSearchBoolean(search.IsSubAllocate)
+		requestStr += "&ipaddrKindPiHistorical=" + getSearchBoolean(search.IsHistoricalPI)
+		requestStr += "&ipaddrKindPiSpecial=" + getSearchBoolean(search.IsSpecialPI)
+		requestStr += "&action=　検索　"
 	} else {
 		// 手動選択
 		requestStr = "destdisp=" + submitID
@@ -249,7 +256,7 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 		requestStr += "&regKindSubA=" + getSearchBoolean(search.IsSubAllocate)
 		requestStr += "&ipaddrKindPiHistorical=" + getSearchBoolean(search.IsHistoricalPI)
 		requestStr += "&ipaddrKindPiSpecial=" + getSearchBoolean(search.IsSpecialPI)
-		requestStr += "&action=%81%40%8C%9F%8D%F5%81%40"
+		requestStr += "&action=　検索　"
 	}
 
 	// utf-8 => shift-jis
@@ -288,6 +295,11 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 	index := 0
 	isJPNICHandleExist := make(map[string]int)
 
+	// option1 function
+	for _, handle := range search.Option1 {
+		isJPNICHandleExist[handle] = 0
+	}
+
 	doc.Find("table").Children().Find("td").Each(func(_ int, tableHtml *goquery.Selection) {
 		className, _ := tableHtml.Attr("class")
 		if className != "dataRow_mnt04" {
@@ -296,13 +308,6 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 		dataStr := strings.TrimSpace(tableHtml.Text())
 		switch index {
 		case 0:
-			if allCounter != 0 {
-				infos = append(infos, info)
-				info = InfoIPv4{}
-			} else {
-				allCounter++
-			}
-
 			info.IPAddress = dataStr
 			info.DetailLink, _ = tableHtml.Find("a").Attr("href")
 		case 1:
@@ -325,19 +330,22 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 			info.Type = dataStr
 		case 10:
 			info.KindID = dataStr
-		}
-
-		if index == 10 {
 			// 詳細情報の取得
-			if isDetail {
+			if search.IsDetail && allCounter != 0 {
+				//log.Println("==========")
+				time.Sleep(1 * time.Second)
+				//log.Println("req1")
 				info.InfoDetail, err = getInfoDetail(client, info.DetailLink)
 				if err != nil {
+
 					return
 				}
-				// 一定時間停止
-				time.Sleep(200 * time.Microsecond)
 				// Admin JPNIC Handle
 				if _, ok := isJPNICHandleExist[info.InfoDetail.TechJPNICHandle]; !ok {
+					// 一定時間停止
+					time.Sleep(1 * time.Second)
+					//log.Println("req2")
+
 					jpnic, err := getJPNICHandle(client, info.InfoDetail.AdminJPNICHandleLink)
 					if err != nil {
 						return
@@ -345,10 +353,12 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 					jpnicHandles = append(jpnicHandles, jpnic)
 					isJPNICHandleExist[info.InfoDetail.TechJPNICHandle] = 0
 				}
-				// 一定時間停止
-				time.Sleep(100 * time.Microsecond)
 				// Tech JPNIC Handle
 				if _, ok := isJPNICHandleExist[info.InfoDetail.AdminJPNICHandle]; !ok {
+					//log.Println("req3")
+					// 一定時間停止
+					time.Sleep(1 * time.Second)
+
 					jpnic, err := getJPNICHandle(client, info.InfoDetail.TechJPNICHandleLink)
 					if err != nil {
 						return
@@ -356,21 +366,23 @@ func (c *Config) SearchIPv4(myself, isDetail bool, search SearchIPv4) ([]InfoIPv
 					jpnicHandles = append(jpnicHandles, jpnic)
 					isJPNICHandleExist[info.InfoDetail.AdminJPNICHandle] = 0
 				}
-				time.Sleep(200 * time.Microsecond)
+				//log.Printf("count: %d\n", allCounter)
+				//log.Println("==========")
 			}
-			index = 0
-			return
+			index = -1
+			if allCounter != 0 {
+				infos = append(infos, info)
+				info = InfoIPv4{}
+			}
+			allCounter++
 		}
 		index++
 	})
 
-	infos = infos[1:]
-	jpnicHandles = jpnicHandles[1:]
-
 	return infos, jpnicHandles, nil
 }
 
-func (c *Config) SearchIPv6(myself, isDetail bool, search SearchIPv6) ([]InfoIPv6, []JPNICHandleDetail, error) {
+func (c *Config) SearchIPv6(search SearchIPv6) ([]InfoIPv6, []JPNICHandleDetail, error) {
 	client, menuURL, err := c.initAccess("登録情報検索(IPv6)")
 	if err != nil {
 		return nil, nil, err
@@ -410,7 +422,7 @@ func (c *Config) SearchIPv6(myself, isDetail bool, search SearchIPv6) ([]InfoIPv
 
 	var requestStr string
 
-	if myself {
+	if search.Myself {
 		// 自身のAS
 		var resceAdmSnm string
 		doc.Find("form").Find("ul").Find("table").Children().Find("table").Children().Find("input").Each(func(index int, s *goquery.Selection) {
@@ -527,19 +539,22 @@ func (c *Config) SearchIPv6(myself, isDetail bool, search SearchIPv6) ([]InfoIPv
 			info.DeliNo = dataStr
 		case 8:
 			info.KindID = dataStr
-		}
-
-		if index == 8 {
 			// 詳細情報の取得
-			if isDetail {
+			if search.IsDetail && allCounter != 0 {
+				//log.Println("==========")
+				time.Sleep(1 * time.Second)
+				//log.Println("req1")
 				info.InfoDetail, err = getInfoDetail(client, info.DetailLink)
 				if err != nil {
+
 					return
 				}
-				// 一定時間停止
-				time.Sleep(200 * time.Microsecond)
 				// Admin JPNIC Handle
 				if _, ok := isJPNICHandleExist[info.InfoDetail.TechJPNICHandle]; !ok {
+					// 一定時間停止
+					time.Sleep(1 * time.Second)
+					//log.Println("req2")
+
 					jpnic, err := getJPNICHandle(client, info.InfoDetail.AdminJPNICHandleLink)
 					if err != nil {
 						return
@@ -547,10 +562,12 @@ func (c *Config) SearchIPv6(myself, isDetail bool, search SearchIPv6) ([]InfoIPv
 					jpnicHandles = append(jpnicHandles, jpnic)
 					isJPNICHandleExist[info.InfoDetail.TechJPNICHandle] = 0
 				}
-				// 一定時間停止
-				time.Sleep(100 * time.Microsecond)
 				// Tech JPNIC Handle
 				if _, ok := isJPNICHandleExist[info.InfoDetail.AdminJPNICHandle]; !ok {
+					//log.Println("req3")
+					// 一定時間停止
+					time.Sleep(1 * time.Second)
+
 					jpnic, err := getJPNICHandle(client, info.InfoDetail.TechJPNICHandleLink)
 					if err != nil {
 						return
@@ -558,16 +575,18 @@ func (c *Config) SearchIPv6(myself, isDetail bool, search SearchIPv6) ([]InfoIPv
 					jpnicHandles = append(jpnicHandles, jpnic)
 					isJPNICHandleExist[info.InfoDetail.AdminJPNICHandle] = 0
 				}
-				time.Sleep(200 * time.Microsecond)
+				//log.Printf("count: %d\n", allCounter)
+				//log.Println("==========")
 			}
-			index = 0
-			return
+			index = -1
+			if allCounter != 0 {
+				infos = append(infos, info)
+				info = InfoIPv6{}
+			}
+			allCounter++
 		}
 		index++
 	})
-
-	infos = infos[1:]
-	jpnicHandles = jpnicHandles[1:]
 
 	return infos, jpnicHandles, nil
 }
@@ -1577,71 +1596,6 @@ func (c *Config) GetRequestList(searchStr string) ([]RequestInfo, error) {
 
 	return infos, nil
 }
-
-//func (c *Config) GetDetailRequest(recepNo string) (string, error) {
-//	client, menuURL, err := c.initAccess("資源管理者情報")
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	r := request{
-//		Client:      client,
-//		URL:         baseURL + "/jpnic/certmemberlogin.do",
-//		Body:        "",
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err := r.get()
-//	if err != nil {
-//		return "", err
-//	}
-//	defer resp.Body.Close()
-//
-//	r = request{
-//		Client:      client,
-//		URL:         baseURL + "/jpnic/applyform.do?recepNo=" + recepNo,
-//		UserAgent:   userAgent,
-//		ContentType: contentType,
-//	}
-//
-//	resp, err = r.get()
-//	if err != nil {
-//		return "", err
-//	}
-//	defer resp.Body.Close()
-//
-//	body, _, err := readShiftJIS(resp.Body)
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	var info string
-//
-//	doc.Find("table").Each(func(_ int, tableHtml1 *goquery.Selection) {
-//		tableHtml1.Find("tr").Each(func(_ int, rowHtml1 *goquery.Selection) {
-//			rowHtml1.Find("td").Each(func(index int, tableCell1 *goquery.Selection) {
-//				tableCell1.Find("table").Each(func(_ int, tableHtml2 *goquery.Selection) {
-//					tableHtml2.Find("tr").Each(func(_ int, rowHtml2 *goquery.Selection) {
-//						rowHtml2.Find("td").Each(func(index int, tableCell2 *goquery.Selection) {
-//							dataStr := strings.TrimSpace(tableCell2.Text())
-//							if dataStr != "" {
-//								info = "\n" + dataStr
-//							}
-//						})
-//					})
-//				})
-//			})
-//		})
-//	})
-//
-//	return info, nil
-//}
 
 func (c *Config) GetResourceManagement() (ResourceInfo, string, error) {
 	var info ResourceInfo
