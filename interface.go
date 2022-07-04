@@ -290,6 +290,7 @@ type ResourceManagerInfo struct {
 
 type ResourceCIDRBlock struct {
 	Address          string  `json:"address"`
+	URL              string  `json:"url"`
 	AssignDate       string  `json:"assign_date"`
 	UtilizationRatio float64 `json:"utilization_ratio"`
 	UsedAddress      uint64  `json:"used_address"`

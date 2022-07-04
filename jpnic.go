@@ -1652,6 +1652,7 @@ func (c *Config) GetResourceManagement() (ResourceInfo, string, error) {
 				tmpAddress := strings.Replace(splitAddress[0], "\n", "", 1)
 				address := strings.Replace(tmpAddress, "	", "", 3)
 				cidrBlock.Address = strings.TrimSpace(address)
+				cidrBlock.URL = addressDetailURL
 			}
 		case 1:
 			switch title {
