@@ -8,10 +8,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/crypto/pkcs12"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type request struct {
@@ -76,8 +78,17 @@ func (c *Config) initAccess(menuName string) (*http.Client, string, error) {
 	}
 	tlsConfig.BuildNameToCertificate()
 
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-	client := &http.Client{Transport: transport, Jar: jar}
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 10 * time.Second,
+		}).DialContext,
+	}
+	client := &http.Client{
+		Transport: transport,
+		Jar:       jar,
+	}
 
 	// Login
 	r := request{
